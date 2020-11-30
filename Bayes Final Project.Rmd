@@ -11,6 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(bayesrules)
 library(rstan)
-
+library(readr)
 ```
 
+```{r}
+covid <- read_csv("time1Time2Data.csv")
+```
