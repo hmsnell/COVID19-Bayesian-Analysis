@@ -28,8 +28,19 @@ Outcome: _Overall Quality of Life Score_
 (Mark if they need any kind of cleaning)
 
 
-
-
+Natalia:
+age 
+gender (binary)
+illnesses (binary)
+education (scale)
+percieved vulnerability to disease
+percieved vulnerability to COVID
+impact of events scale total
+intolerance of uncertainty total
+preventative action taken scale PPE use
+five factor mindfulness questionairre total
+general health questionairre total
+isolation (binary)
 
 
 
