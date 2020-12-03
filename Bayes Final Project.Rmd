@@ -16,4 +16,5 @@ library(readr)
 
 ```{r}
 covid <- read_csv("time1Time2Data.csv")
+time_1 <- read_csv("Sheet 1-Table 1-1.csv")
 ```
