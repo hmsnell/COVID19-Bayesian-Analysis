@@ -45,4 +45,20 @@ Outcome: _Overall Quality of Life Score_
 
 
 
->>>>>>> f507ce08b40610db1516adaced217bc99106e29a
+
+Hannah's List - Predictor Vars
+- Age (no cleaning needed)
+- Gender (no cleaning needed) 
+- Occupation (RELEVEL)
+- Employment Status Before/After COVID
+- Marital Status
+- Education
+- Race
+- Religion (Reshape)
+- State (Relevel)
+- Isolation
+- Perceived Susceptibility to COVID
+- FFMQ Total Vars 
+
+
+
