@@ -16,7 +16,9 @@ library(readr)
 
 ```{r}
 covid <- read_csv("time1Time2Data.csv")
+time_1 <- read_csv("Sheet 1-Table 1-1.csv")
 ```
+
 
 # Variable EDA and Selection  
 
@@ -40,6 +42,23 @@ Outcome: _Overall Quality of Life Score_
 
 
 
+
+
+
+
+Hannah's List - Predictor Vars
+- Age (no cleaning needed)
+- Gender (no cleaning needed) 
+- Occupation (RELEVEL)
+- Employment Status Before/After COVID
+- Marital Status
+- Education
+- Race
+- Religion (Reshape)
+- State (Relevel)
+- Isolation
+- Perceived Susceptibility to COVID
+- FFMQ Total Vars 
 
 
 
