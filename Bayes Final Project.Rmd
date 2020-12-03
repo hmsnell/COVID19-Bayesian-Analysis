@@ -31,6 +31,8 @@ Outcome: _Overall Quality of Life Score_
 
 
 
+Quality of life
+Patient Health questionnaire
 
 
 
@@ -43,6 +45,3 @@ Outcome: _Overall Quality of Life Score_
 
 
 
-
-
->>>>>>> f507ce08b40610db1516adaced217bc99106e29a
