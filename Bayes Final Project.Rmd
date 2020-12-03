@@ -30,9 +30,20 @@ Outcome: _Overall Quality of Life Score_
 (Mark if they need any kind of cleaning)
 
 
-
-Quality of life
-Patient Health questionnaire
+Dianne's list:
+Gender
+Age (I think theres 1 N/A to clean)
+Occupation (needs lost of cleaning)
+Employment status
+Marital status
+Education
+Race
+Income (clean NAs)
+Illnesses and meds yes/no
+isolation yes/no
+perceived susceptibility
+Quality of life total
+Patient Health questionnaire total
 
 
 
