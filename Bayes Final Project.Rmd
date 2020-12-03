@@ -4,7 +4,7 @@ author: "Hannah Snell"
 date: "11/30/2020"
 output: html_document
 ---
-
+# Data Setup 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -18,3 +18,31 @@ library(readr)
 covid <- read_csv("time1Time2Data.csv")
 time_1 <- read_csv("Sheet 1-Table 1-1.csv")
 ```
+
+
+# Variable EDA and Selection  
+
+## 12/3/2020 Game Plan
+
+Outcome: _Overall Quality of Life Score_
+
+### LIST OF VARIABLES IN TIME 1 DATA: 
+(Mark if they need any kind of cleaning)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+>>>>>>> f507ce08b40610db1516adaced217bc99106e29a
