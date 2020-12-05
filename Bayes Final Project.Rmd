@@ -62,10 +62,20 @@ five factor mindfulness questionairre total
 general health questionairre total
 isolation (binary)
 
-
-
-
-
+Elaine: 
+Age
+gender 
+Employment status
+Education 
+Accomodation 
+Self-isolation (yes/no)
+General health questionnaire 
+Prevention action taken scale PPE use 
+Quality of life 
+Patient health quationnaire 
+Intolerance of uncertainty 
+Perceived susceptibility to COVID 19 
+Perceived susceptibility to disease 
 
 
 
