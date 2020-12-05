@@ -10,6 +10,7 @@ library(bayesrules)
 library(rstan)
 library(readr)
 library(rstanarm)
+library(bayesplot)
 ```
 
 ```{r}
@@ -48,25 +49,9 @@ susceptibility_model <- stan_glm(Time2_perceived_susceptibility_to_covid19 ~ Tim
 
 set.seed(84735)
 pp_check(susceptibility_model, nreps = 50)
-#still not relaly working, not a good variable to try to predict maybe
+#still not relaly working, not a good variable to try to predict maybe?
 ```
   
-  
-  
-Time1_self_isolation_yes_or_no  
-  predicotrs: Time1_impact_of_events_scale_total, Time1_patient_health_questionnaire_total, ime1_general_health_quetionnaire_total, Time1_preventive_action_taken_scale_PPEuse    
-
-
-Time1_number_of_times_leave_home_per_day
-  predictors: age, race, illnesses, Time1_impact_of_events_scale_total, Time1_patient_health_questionnaire_total, Time1_perceived_susceptibility_to_COVID19, Time1_preventive_action_taken_scale_PPEuse          
-
-
-Time1_preventive_action_taken_scale_PPEuse
-  predictors: age, illnesses, Time1_impact_of_events_scale_total, Time1_Religious_Affiliation, Time1_five_factor_mindfulness_questionnaire_total, Time1_number_of_times_leave_home_per_day, Time1_intolerance_of_uncertainty_total, Time1_patient_health_questionnaire_total, Time1_Educational_attainment 
-
-```{r}
-
-```
 
 
 Time1_quality_of_life_Total
@@ -80,13 +65,72 @@ quality_mod1 <- stan_glm(Time1_quality_of_life_Total ~ Time1_patient_health_ques
                              chains = 4,
                              iter = 10000*2)
 
-set.seed(84735)
 pp_check(quality_mod1, nreps = 50)
 ```
 
 
-from the paper:
-The Impact of Events Scale – Revised (IES-R) was used to measure post-traumatic stress symptoms (Weiss & Marmar, 1997). The IES-R has been extensively used as a measure of post-traumatic stress symptoms in community and clinical samples (e.g., Beck, et al., 2008). The scale contains 22 items (e.g. “I thought about it when I didn’t mean to”) that were responded to on a five-point scale that ranged from 0 (“not at all”) to 4 (“extremely”). Participants were instructed to indicate how distressing each difficulty has been for the past 7 days with respect to the Coronavirus situation. The internal consistency of the scale was high (Cronbach’s α = .97). A total IES-R score was calculated with higher scores indicating higher levels of symptoms.
 
 
 could have impact of events total as outcome
+
+Time1_quality_of_life_Total
+  predictors: illnesses, health_questionairere, percieved suscept, mindfulness, general health quest, percieved vuln to dieasease 
+#predicting quality of life 
+```{r}
+set.seed(84735)
+pois_mod <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_perceived_susceptibility_to_COVID19 + Time1_five_factor_mindfulness_questionnaire_total, 
+                             data = covid,
+                             family = gaussian(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(pois_mod)
+```
+
+#predicting percieved susceptibility 
+```{r}
+set.seed(84735)
+cov_mod <- stan_glm(Time1_perceived_susceptibility_to_COVID19 ~ Time1_Illnesses + Time1_impact_of_events_scale_total+ Time1_perceived_vulnerability_to_disease + Time1_perceived_vulnerability_to_disease*Time1_general_health_quetionnaire_total, 
+                             data = covid,
+                             family = poisson,
+                             chains = 4,
+                             iter = 10000*2)
+
+
+pp_check(cov_mod)
+```
+
+  
+#predicting PPE use
+```{r}
+set.seed(84735)
+cov_mod2 <- stan_glm(Time1_preventive_action_taken_scale_PPEuse ~
+Time1_Gender + Time1_Age + Time1_perceived_susceptibility_to_COVID19 + Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total + Time1_Illnesses + Time1_intolerance_of_uncertainty_total + Time1_Illnesses*Time1_patient_health_questionnaire_total +
+Time1_perceived_vulnerability_to_disease*Time1_patient_health_questionnaire_total + Time1_perceived_vulnerability_to_disease*Time1_Illnesses + Time1_intolerance_of_uncertainty_total*Time1_impact_of_events_scale_total,
+                     data = covid,
+                     family = gaussian(),
+                     chains = 4,
+                     iter = 10000*2)
+                       
+                       
+pp_check(cov_mod2)
+```
+
+
+
+Time1_preventive_action_taken_scale_PPEuse
+  predictors: age, illnesses, Time1_impact_of_events_scale_total, Time1_Religious_Affiliation, Time1_five_factor_mindfulness_questionnaire_total, Time1_number_of_times_leave_home_per_day, Time1_intolerance_of_uncertainty_total, Time1_patient_health_questionnaire_total, Time1_Educational_attainment
+
+#predicting time 2
+```{r}
+set.seed(84735)
+cov_mod3 <- stan_glm(Time2_preventive_action_taken_scale_PPEuse ~
+Time2_Illnesses + Time2_five_factor_mindfulness_questionnaire_total + Time2_patient_health_questionnaire_total + Time2_patient_health_questionnaire_total*Time2_Illnesses,
+                     data = covid,
+                     family = gaussian(),
+                     chains = 4,
+                     iter = 10000*2)
+                       
+                       
+pp_check(cov_mod3)
+```
