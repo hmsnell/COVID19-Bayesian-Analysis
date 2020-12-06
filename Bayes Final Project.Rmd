@@ -12,6 +12,8 @@ library(tidyverse)
 library(bayesrules)
 library(rstan)
 library(readr)
+library(rstanarm)
+library(bayesplot)
 ```
 
 ```{r}
@@ -111,6 +113,33 @@ pois_mod2 <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_gene
                              iter = 5000*2)
 
 pp_check(pois_mod2, nreps = 50)
+
+# Trace plots of parallel chains
+mcmc_trace(pois_mod2, size = 0.1)
+#look fine
+
+# Density plots of parallel chains
+mcmc_dens_overlay(pois_mod2)
+#looks fine, chains have stabilized
+
+model_summary <- summary(pois_mod2)
+head(as.data.frame(model_summary), -2)
+
+
+predictions <-posterior_predict(pois_mod2,
+  newdata = covid)
+
+ppc_intervals(covid$Time1_quality_of_life_Total,
+yrep = predictions,
+prob = 0.5, prob_outer = 0.95)
+#not sure how to interpret this
+
+set.seed(84735)
+cv_procedure <- prediction_summary_cv(
+data = covid, model = pois_mod2, k = 10)
+
+cv_procedure$cv
+#within 50 not great, but mae_scaled not too bad
 ```
 
 Can we get the middle/peak more accurate?

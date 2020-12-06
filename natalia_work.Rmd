@@ -51,6 +51,7 @@ quality_mod1 <- stan_glm(Time1_quality_of_life_Total ~ Time1_patient_health_ques
                              iter = 5000*2)
 
 pp_check(quality_mod1, nreps = 50)
+
 ```
 
 ###Poisson model better; copied into main RMD 
@@ -76,6 +77,7 @@ pois_mod2 <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_gene
                              iter = 5000*2)
 
 pp_check(pois_mod2, nreps = 50)
+
 ```
 
 
@@ -151,6 +153,16 @@ susceptibility_model5 <- stan_glm(Time1_perceived_susceptibility_to_COVID19 ~ Ti
                              iter = 5000*2)
 
 pp_check(susceptibility_model5, plotfun = "ppc_bars", nreps = 50)
+
+
+
+loo_1 <- loo(susceptibility_model)
+loo_2 <- loo(susceptibility_model2)
+loo_3 <- loo(susceptibility_model3)
+loo_4 <- loo(susceptibility_model4)
+loo_5 <- loo(susceptibility_model5)
+
+loo_compare(loo_1, loo_2, loo_3, loo_4, loo_5)
 ```
 
 ### this one is slightly better... a couple preditions getting the peaks.. how can we get more to follow them?
