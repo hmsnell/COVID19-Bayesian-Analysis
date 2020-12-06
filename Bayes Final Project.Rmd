@@ -100,6 +100,66 @@ Hannah's List - Predictor Vars
 - Perceived Susceptibility to COVID
 - FFMQ Total Vars 
 
+# Predicting Quality of Life 
+
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+pois_mod2 <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_general_health_quetionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_Illnesses*Time1_general_health_quetionnaire_total + Time1_general_health_quetionnaire_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total*Time1_Illnesses, 
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(pois_mod2, nreps = 50)
+```
+
+Can we get the middle/peak more accurate?
+
+#Predicting Self-Isolation (Logistic Regression)
+
+```{r echo=TRUE, results = 'hide'}
+covid_bin <- covid %>%
+  mutate(Time1_self_isolation_yes_or_no = if_else(Time1_self_isolation_yes_or_no == '1', '0', '1')) %>%
+    mutate(Time1_self_isolation_yes_or_no = as.integer(Time1_self_isolation_yes_or_no))
+
+set.seed(84735)
+log_mod <- stan_glm(Time1_self_isolation_yes_or_no   ~ Time1_patient_health_questionnaire_total +  Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total*Time1_impact_of_events_scale_total ,
+                        data = covid_bin,
+                        family = binomial('logit'),
+                        chains = 4,
+                        iter = 5000 * 2)
+
+pp_check(log_mod)
+```
 
 
+# Predicting Perceived Vulnerability to Disease At Time 2
 
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+disease_mod3 <- stan_glm(Time2_perceived_vulnerability_to_disease_total ~ Time2_Illnesses + Time2_Meds + Time2_intolerance_of_uncertainty_total + Time2_impact_of_events_scale_total + Time2_Illnesses*Time2_Meds + Time2_intolerance_of_uncertainty_total*Time2_impact_of_events_scale_total,
+                        data = covid,
+                        family = gaussian(),
+                        chains = 4,
+                        iter = 5000 * 2)
+
+pp_check(disease_mod3, nreps = 50)
+```
+
+This is not perfect, but closest I have gotten so far... can we improve?
+
+# Predicting Preventative Action: Avoiding Travel and People
+
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+cov_mod6 <- stan_glm(Time1_preventive_action_taken_scale_avoid_travel_people ~
+Time1_Age + Time1_Gender + Time1_Marital_status +  Time1_five_factor_mindfulness_questionnaire_total + Time1_Religious_Affiliation + Time1_Age*Time1_Marital_status,
+                     data = covid,
+                     family = poisson(),
+                     chains = 4,
+                     iter = 5000*2)
+                       
+pp_check(cov_mod6, nreps = 50)
+```
+
+This is the best model I can get so far... poisson works best 
