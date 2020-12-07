@@ -27,6 +27,7 @@ timedata %>%
 ```{r}
 ggplot(data = timedata, aes(x=Time1_quality_of_life_Total)) + geom_histogram()
 summary(timedata$Time1_quality_of_life_Total)
+summary(timedata$Time2_quality_of_life_total)
 ggplot(data = timedata, aes(x=Time1_preventive_action_taken_scale_PPEuse)) + geom_histogram()
 ggplot(data = timedata, aes(x=Time1_intolerance_of_uncertainty_total)) + geom_histogram()
 ggplot(data = timedata, aes(x=Time1_general_health_quetionnaire_total)) + geom_histogram()
@@ -34,4 +35,8 @@ ggplot(data = timedata, aes(x=Time1_general_health_quetionnaire_total)) + geom_h
 
 ```
 
+```{r}
+library(haven)
+Time_1_dataset_for_data_in_brief_october_26_2020 <- read_sav("Time 1 dataset for data in brief october-26-2020.sav")
+```
 
