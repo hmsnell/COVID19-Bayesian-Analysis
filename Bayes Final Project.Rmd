@@ -192,3 +192,21 @@ pp_check(cov_mod6, nreps = 50)
 ```
 
 This is the best model I can get so far... poisson works best 
+
+
+# Predicting PPE Use
+
+```{r}
+set.seed(84735)
+ppe_6 <- stan_glm(Time1_preventive_action_taken_scale_PPEuse ~ Time1_Age +
+Time1_intolerance_of_uncertainty_total + Time1_five_factor_mindfulness_questionnaire_total +  Time1_intolerance_of_uncertainty_total:Time1_five_factor_mindfulness_questionnaire_total,
+                     data = covid,
+                     family = gaussian(),
+                     chains = 4,
+                     iter = 5000*2)
+                       
+                       
+pp_check(ppe_6, nreps = 50)
+```
+
+This is the best model I have gotten, but still having trouble fitting the bimodaality.
