@@ -37,6 +37,79 @@ ggplot(data = timedata, aes(x=Time1_general_health_quetionnaire_total)) + geom_h
 
 ```{r}
 library(haven)
-Time_1_dataset_for_data_in_brief_october_26_2020 <- read_sav("Time 1 dataset for data in brief october-26-2020.sav")
+time1 <- read_sav("Time 1 dataset for data in brief october-26-2020.sav")
 ```
+
+```{r message=FALSE, results="hide"}
+library(rstan)
+library(rstanarm)
+set.seed(84735)
+mod_a <- stan_glm(Quality_of_Life_Total ~ Age + Gender + Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Impact_of_Events_Scale_Total,
+                             data = time1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+
+library(bayesplot)
+mcmc_trace(mod_a, size = 0.1)
+
+model_summary <- summary(mod_a)
+head(as.data.frame(model_summary), -2)
+
+
+set.seed(84735)
+mod_b <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total,
+                             data = time1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+```
+
+```{r}
+##don't understand why the direction of intolerance of uncertainty changes 
+##impact of events scale have vif 2.96 
+mod1 <- lm(Quality_of_Life_Total ~ Age + Gender + Education + Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Impact_of_Events_Scale_Total, data=time1)
+summary(mod1)
+
+mod1 <- lm(Quality_of_Life_Total ~ Age + Gender + Intolerance_of_Uncertainty_Total, data=time1)
+summary(mod1)
+
+library(car)
+vif(mod1)
+
+mod1 <- lm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total, data=time1)
+summary(mod1)
+
+```
+
+```{r}
+set.seed(84735)
+pp_check(mod_a, nreps = 50)
+
+set.seed(84735)
+pp_check(mod_b, nreps = 50)
+```
+
+```{r}
+set.seed(84735)
+mod_c <- stan_glm(Preventive_Action_Taken_Scale_PPEuse_Total ~ Age + Gender + Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Impact_of_Events_Scale_Total,
+                             data = time1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+```
+```{r}
+set.seed(84735)
+pp_check(mod_c, nreps = 50)
+
+mod3 <- lm(Preventive_Action_Taken_Scale_PPEuse_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total, data=time1)
+summary(mod3)
+```
+
+
+
+
+
+
+
 
