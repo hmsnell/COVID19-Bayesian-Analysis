@@ -1,0 +1,50 @@
+---
+title: "Bayes Final Project"
+author: "Hannah Snell, Natalia Iannucci, Dianne Caravela, Elaine Ya"
+date: "12/17/2020"
+output: html_document
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(bayesrules)
+library(rstan)
+library(readr)
+library(rstanarm)
+library(bayesplot)
+```
+
+# Title
+
+
+# Abstract 
+
+
+# Background and Significance
+
+### Literature Review
+
+### Select Variables
+
+control for demographics (age, sex, educational attainment)
+
+
+# Methods
+
+examine distribution to determine type of regression (poisson, gaussian, binom, etc)
+
+Create model 
+
+Run diagnostics 
+
+Evaluate Accuracy 
+
+
+# Results
+
+
+# Discussion/Conclusion
+
+
+# References 
