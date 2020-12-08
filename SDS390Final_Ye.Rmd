@@ -56,14 +56,16 @@ mcmc_trace(mod_a, size = 0.1)
 model_summary <- summary(mod_a)
 head(as.data.frame(model_summary), -2)
 
+```
 
-set.seed(84735)
-mod_b <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total,
-                             data = time1,
-                             family = gaussian,
+```{r}
+pois_mod2 <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_general_health_quetionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_Illnesses*Time1_general_health_quetionnaire_total + Time1_general_health_quetionnaire_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total*Time1_Illnesses, 
+                             data = covid,
+                             family = poisson(),
                              chains = 4,
                              iter = 5000*2)
 ```
+
 
 ```{r}
 ##don't understand why the direction of intolerance of uncertainty changes 
@@ -77,8 +79,9 @@ summary(mod1)
 library(car)
 vif(mod1)
 
-mod1 <- lm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total, data=time1)
+mod1 <- lm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Race+ Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total, data=time1)
 summary(mod1)
+
 
 ```
 
@@ -87,7 +90,18 @@ set.seed(84735)
 pp_check(mod_a, nreps = 50)
 
 set.seed(84735)
+mod_b <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total,
+                             data = time1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+
+set.seed(84735)
 pp_check(mod_b, nreps = 50)
+
+model_summary <- summary(mod_b)
+head(as.data.frame(model_summary), -2)
+vif(mod_b)
 ```
 
 ```{r}
