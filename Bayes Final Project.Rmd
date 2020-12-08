@@ -210,3 +210,20 @@ pp_check(ppe_6, nreps = 50)
 ```
 
 This is the best model I have gotten, but still having trouble fitting the bimodaality.
+
+# Elaine's model; predicting quality of life
+```{r}
+set.seed(84735)
+mod_b <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+
+set.seed(84735)
+pp_check(mod_b, nreps = 50)
+
+model_summary <- summary(mod_b)
+head(as.data.frame(model_summary), -2)
+```
+
