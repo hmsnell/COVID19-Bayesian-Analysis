@@ -29,6 +29,7 @@ library(bayesplot)
 
 control for demographics (age, sex, educational attainment)
 
+### hypothesis
 
 # Methods
 
@@ -40,6 +41,7 @@ Run diagnostics
 
 Evaluate Accuracy 
 
+Interpret model
 
 # Results
 
