@@ -1,0 +1,148 @@
+---
+title: "data_cleaning"
+author: "Hannah Snell"
+date: "12/5/2020"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(stringr)
+
+timeone <- read_csv("Sheet 1-Table 1-1.csv")
+```
+
+# Clean Variables
+
+```{r}
+# State Variable 
+timeone_clean <- timeone %>% 
+  mutate(State = tolower(State)) %>% 
+  mutate(State = recode(State, 
+                           "alabama" = "AL",
+                           "alaska" = "AK",
+                           "arizona" = "AZ",
+                           "arkansas" = "AR",
+                           "california" = "CA",
+                           "colorado" = "CO",
+                           "connecticut" = "CT",
+                           "delaware" = "DE",
+                           "district Of Columbia" = "DC",
+                           "florida" = "FL",
+                           "georgia" = "GA",
+                           "hawaii" = "HI",
+                           "idaho" = "ID",
+                           "illinois" = "IL",
+                           "indiana" = "IN", 
+                           "iowa" = "IA",
+                           "kansas" = "KS",
+                           "kentucky" = "KY",
+                           "louisiana" = "LA", 
+                           "maine" = "ME",
+                           "maryland" = "MD",
+                           "massachusetts" = "MA",
+                           "michigan" = "MI",
+                           "minnesota" = "MN",
+                           "mississippi" = "MS",
+                           "missouri" = "MO",
+                           "montana" = "MT",
+                           "nebraska" = "NE",
+                           "nevada" = "NV",
+                           "new hampshire" = "NH",
+                           "new jersey" = "NJ",
+                           "new mexico" = "NM",
+                           "new york" = "NY",
+                           "north carolina" = "NC",
+                           "north dakota" = "ND",
+                           "ohio" = "OH",
+                           "oklahoma" = "OK",
+                           "oregon" = "OR",
+                           "pennsylvania" = "PA",
+                           "rhode island" = "RI",
+                           "south carolina" = "SC",
+                           "south dakota" = "SD",
+                           "tennessee" = "TN",
+                           "texas" = "TX",
+                           "utah" = "UT",
+                           "vermont" = "VT",
+                           "virginia" = "VA",
+                           "washington" = "WA",
+                           "west virginia" = "WV",
+                           "wisconsin" = "WI",
+                           "wyoming" = "WY")) %>% 
+  mutate(State = tolower(State)) %>% 
+  # get list of typos to adjust here
+  #filter(nchar(State) > 2) %>% 
+  #filter(State != "usa") %>% 
+  mutate(State = recode(State,  "penssylvania" =  "PA", 
+                                "pennyslavania" = "PA",  
+                                "pensynlvannia" = "PA",  
+                                "north corilon" = "NC", 
+                                "taxas" = "TX", 
+                                "newjersey" = "NJ", 
+                                "oklahamo" = "OK", 
+                                "new y ork" = "NY", 
+                                "lousiana" = "LA",  
+                                "colampya" = "None", 
+                                "america" = "usa", 
+                                "oregan" = "OR", 
+                                "maxcico" = "None", 
+                                "ckoforin" = "NY",  
+                                "united states" = "usa")) %>% 
+  mutate(State = toupper(State)) %>% 
+   mutate(State = str_replace(State, ".*TODAY.*", "NONE"))
+  
+```
+
+For the occupation variable, I am using the U.S. Bureau of Labor Statistics SOC Codes for Labor Categories: 
+
+11-0000  Management Occupations
+13-0000  Business and Financial Operations Occupations
+15-0000  Computer and Mathematical Occupations
+17-0000  Architecture and Engineering Occupations
+19-0000  Life, Physical, and Social Science Occupations
+21-0000  Community and Social Service Occupations
+23-0000  Legal Occupations
+25-0000  Educational Instruction and Library Occupations
+27-0000  Arts, Design, Entertainment, Sports, and Media Occupations
+29-0000  Healthcare Practitioners and Technical Occupations
+31-0000  Healthcare Support Occupations
+33-0000  Protective Service Occupations
+35-0000  Food Preparation and Serving Related Occupations
+37-0000  Building and Grounds Cleaning and Maintenance Occupations
+39-0000  Personal Care and Service Occupations
+41-0000  Sales and Related Occupations
+43-0000  Office and Administrative Support Occupations
+45-0000  Farming, Fishing, and Forestry Occupations
+47-0000  Construction and Extraction Occupations
+49-0000  Installation, Maintenance, and Repair Occupations
+51-0000  Production Occupations
+53-0000  Transportation and Material Moving Occupations
+55-0000  Military Specific Occupations
+
+```{r}
+# Overwrite w Occupation Variable 
+
+timeone_clean <- read_csv("timeone_clean_20201209.csv")
+
+# Tidy Data  
+
+timeone_clean <- timeone_clean %>% 
+  mutate(Religion = case_when(Religion_Protestant == 1 ~ "Protestant", 
+                              Religion_Roman_Catholic == 1 ~ "Roman Catholic", 
+                              Religion_Mormon == 1 ~ "Mormon", 
+                              Religion_Jewish == 1 ~ "Jewish", 
+                              Religion_Agnostic == 1 ~ "Agnostic", 
+                              Religion_Atheist == 1 ~ "Atheist", 
+                              Religion_Buddhist == 1 ~ "Buddhist", 
+                              Religion_Hindu == 1 ~ "Hindu", 
+                              Religion_Nothing_in_particular == 1 ~ "Nothing in Particular", 
+                              Religion_Something_else == 1 ~ "Something Else")) %>% 
+  select(-(Religion_Protestant:Religion_12_describe), -City, -Country, -Meds_2_describe, -Illnesses_2_describe)
+
+
+
+```
+
