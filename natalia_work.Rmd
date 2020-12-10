@@ -1,5 +1,5 @@
 ---
-title: "natalia"
+title: "Natalia Working Doc"
 output: html_document
 ---
 
@@ -13,18 +13,18 @@ library(rstanarm)
 library(bayesplot)
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 covid <- read_csv("time1Time2Data.csv")
 ```
 
-```{r}
+```{r include=FALSE}
 covid %>%
   select(Time1_Age,Time1_Race, Time1_Illnesses, Time1_impact_of_events_scale_total, Time1_Educational_attainment, Time1_meds, Time1_patient_health_questionnaire_total,Time1_perceived_susceptibility_to_COVID19 ,Time1_general_health_quetionnaire_total, Time1_Employment_After_COVID, Time1_intolerance_of_uncertainty_total, Time1_intolerance_of_uncertainty_total, Time1_Gender, Time1_perceived_vulnerability_to_disease,Time1_self_isolation_yes_or_no,Time1_number_of_times_leave_home_per_day, Time1_preventive_action_taken_scale_avoid_travel_people,Time1_Marital_status, Time1_five_factor_mindfulness_questionnaire_total, Time1_Religious_Affiliation, Time1_preventive_action_taken_scale_avoid_travel_people, Time1_preventive_action_taken_scale_PPEuse, Time1_quality_of_life_Total) %>%
   as.data.frame() %>%
   cor(use="complete.obs")
 ```
 
-```{r}
+```{r include=FALSE}
 covid %>%
   select(Time2_Annual_income,Time2_Illnesses,Time2_Meds, Time2_impact_of_events_scale_total, Time2_employment_status, Time2_patient_health_questionnaire_total, Time2_intolerance_of_uncertainty_total ,Time2_perceived_susceptibility_to_covid19 ,Time2_self_isolation_yes_or_no, Time2_five_factor_mindfulness_questionnaire_total, Time2_general_health_questionnaire_total, Time2_perceived_vulnerability_to_disease_total,Time2_preventive_action_taken_scale_PPEuse, Time2_quality_of_life_total) %>%
   as.data.frame() %>%
@@ -32,105 +32,323 @@ covid %>%
 ```
 
 
-reponse variables of interest: 
-
-Time1_perceived_susceptibility_to_COVID19 
-  predictors: Time1_patient_health_questionnaire_total, Time1_impact_of_events_scale_total, Time1_intolerance_of_uncertainty_total, Time1_perceived_vulnerability_to_disease, Time1_five_factor_mindfulness_questionnaire_total   
-  
-```{r}
-#Miles said to try Poisson
-set.seed(84735)
-susceptibility_model <- stan_glm(Time2_perceived_susceptibility_to_covid19 ~ Time2_patient_health_questionnaire_total + Time2_perceived_vulnerability_to_disease_total + Time2_patient_health_questionnaire_total*Time2_perceived_vulnerability_to_disease_total,  
-                             data = covid,
-                             family = poisson,
-                             chains = 4,
-                             iter = 10000*2)
 
 
-set.seed(84735)
-pp_check(susceptibility_model, nreps = 50)
-#still not relaly working, not a good variable to try to predict maybe?
-```
-  
 
+
+
+# PREDICTING QUALITY OF LIFE
 
 Time1_quality_of_life_Total
-  predictors: illnesses, health_questionairere, percieved suscept, mindfulness, general health quest, percieved vuln to dieasease 
+  predictors: illnesses, health_questionairere, percieved suscept, mindfulness, general health quest, percieved vuln to disease 
   
-```{r} 
+```{r echo=TRUE, results = 'hide'}
 set.seed(84735)
 quality_mod1 <- stan_glm(Time1_quality_of_life_Total ~ Time1_patient_health_questionnaire_total + Time1_perceived_vulnerability_to_disease + Time1_five_factor_mindfulness_questionnaire_total + Time1_patient_health_questionnaire_total*Time1_perceived_vulnerability_to_disease, 
                              data = covid,
                              family = gaussian(),
                              chains = 4,
-                             iter = 10000*2)
+                             iter = 5000*2)
 
 pp_check(quality_mod1, nreps = 50)
+
 ```
 
+###Poisson model better; copied into main RMD 
 
-
-
-could have impact of events total as outcome
-
-Time1_quality_of_life_Total
-  predictors: illnesses, health_questionairere, percieved suscept, mindfulness, general health quest, percieved vuln to dieasease 
-#predicting quality of life 
-```{r}
+```{r echo=TRUE, results = 'hide'}
 set.seed(84735)
 pois_mod <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_perceived_susceptibility_to_COVID19 + Time1_five_factor_mindfulness_questionnaire_total, 
                              data = covid,
-                             family = gaussian(),
+                             family = poisson(),
                              chains = 4,
                              iter = 5000*2)
 
-pp_check(pois_mod)
+pp_check(pois_mod, nreps = 50)
+
+
+
+
+set.seed(84735)
+pois_mod2 <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_general_health_quetionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_Illnesses*Time1_general_health_quetionnaire_total + Time1_general_health_quetionnaire_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total*Time1_Illnesses, 
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(pois_mod2, nreps = 50)
+
 ```
 
-#predicting percieved susceptibility 
-```{r}
+
+
+
+Time1_perceived_susceptibility_to_COVID19 
+  predictors: Time1_patient_health_questionnaire_total, Time1_impact_of_events_scale_total, Time1_intolerance_of_uncertainty_total, Time1_perceived_vulnerability_to_disease, Time1_five_factor_mindfulness_questionnaire_total   
+
+# PREDICTING PERCIEVED SUSCEPTIBILITY:
+
+## to COVID: can we get this weird multimodality?
+
+```{r echo=TRUE, results = 'hide'}
 set.seed(84735)
 cov_mod <- stan_glm(Time1_perceived_susceptibility_to_COVID19 ~ Time1_Illnesses + Time1_impact_of_events_scale_total+ Time1_perceived_vulnerability_to_disease + Time1_perceived_vulnerability_to_disease*Time1_general_health_quetionnaire_total, 
                              data = covid,
                              family = poisson,
                              chains = 4,
-                             iter = 10000*2)
+                             iter = 5000*2)
 
 
-pp_check(cov_mod)
+pp_check(cov_mod, nreps = 50)
 ```
 
-  
-#predicting PPE use
+```{r echo=TRUE, results = 'hide'}
+#Miles said to try Poisson
+set.seed(84735)
+susceptibility_model <- stan_glm(Time1_perceived_susceptibility_to_COVID19 ~ Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total,  
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(susceptibility_model, plotfun = "ppc_bars", nreps = 50)
+
+
+set.seed(84735)
+susceptibility_model2 <- stan_glm(Time1_perceived_susceptibility_to_COVID19 ~ Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_impact_of_events_scale_total*Time1_five_factor_mindfulness_questionnaire_total,  
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(susceptibility_model2, plotfun = "ppc_bars", nreps = 50)
+
+
+
+set.seed(84735)
+susceptibility_model3 <- stan_glm(Time1_perceived_susceptibility_to_COVID19 ~ Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total + Time1_impact_of_events_scale_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_patient_health_questionnaire_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_impact_of_events_scale_total*Time1_patient_health_questionnaire_total,  
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(susceptibility_model3, plotfun = "ppc_bars", nreps = 50)
+
+
+set.seed(84735)
+susceptibility_model4 <- stan_glm(Time1_perceived_susceptibility_to_COVID19 ~ Time1_Age + Time1_patient_health_questionnaire_total +  Time1_five_factor_mindfulness_questionnaire_total + Time1_patient_health_questionnaire_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_Age*Time1_patient_health_questionnaire_total,  
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(susceptibility_model4, plotfun = "ppc_bars", nreps = 50)
+#not a good one
+
+set.seed(84735)
+susceptibility_model5 <- stan_glm(Time1_perceived_susceptibility_to_COVID19 ~ Time1_patient_health_questionnaire_total +  Time1_five_factor_mindfulness_questionnaire_total + Time1_patient_health_questionnaire_total *Time1_five_factor_mindfulness_questionnaire_total,  
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(susceptibility_model5, plotfun = "ppc_bars", nreps = 50)
+
+
+
+loo_1 <- loo(susceptibility_model)
+loo_2 <- loo(susceptibility_model2)
+loo_3 <- loo(susceptibility_model3)
+loo_4 <- loo(susceptibility_model4)
+loo_5 <- loo(susceptibility_model5)
+
+loo_compare(loo_1, loo_2, loo_3, loo_4, loo_5)
+```
+
+### this one is slightly better... a couple preditions getting the peaks.. how can we get more to follow them?
+
+### try time 2
 ```{r}
 set.seed(84735)
+susceptibility_model5 <- stan_glm(Time2_perceived_susceptibility_to_covid19 ~ Time2_patient_health_questionnaire_total +  Time2_impact_of_events_scale_total + Time2_intolerance_of_uncertainty_total + Time2_five_factor_mindfulness_questionnaire_total,  
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(susceptibility_model5, plotfun = "ppc_bars", nreps = 50)
+```
+
+## to disease
+### try predicting percieved vulnerability to disease instead of COVID: approx normal distrib for this response var distrib
+
+#Time 2 is better for prediction for disease vul
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+disease_mod <- stan_glm(Time2_perceived_vulnerability_to_disease_total ~ Time2_Illnesses + Time2_patient_health_questionnaire_total + Time2_intolerance_of_uncertainty_total + Time2_Illnesses*Time2_patient_health_questionnaire_total,
+                        data = covid,
+                        family = gaussian(),
+                        chains = 4,
+                        iter = 5000 * 2)
+
+pp_check(disease_mod, nreps = 50)
+```
+
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+disease_mod2 <- stan_glm(Time2_perceived_vulnerability_to_disease_total ~ Time1_Age +  Time2_general_health_questionnaire_total +   *Time2_general_health_questionnaire_total,
+                        data = covid,
+                        family = gaussian(),
+                        chains = 4,
+                        iter = 5000 * 2)
+
+pp_check(disease_mod2, nreps = 50)
+
+
+
+
+set.seed(84735)
+disease_mod3 <- stan_glm(Time2_perceived_vulnerability_to_disease_total ~ Time2_Illnesses + Time2_Meds + Time2_intolerance_of_uncertainty_total + Time2_impact_of_events_scale_total + Time2_Illnesses*Time2_Meds + Time2_intolerance_of_uncertainty_total*Time2_impact_of_events_scale_total,
+                        data = covid,
+                        family = gaussian(),
+                        chains = 4,
+                        iter = 5000 * 2)
+
+pp_check(disease_mod3, nreps = 50)
+
+
+set.seed(84735)
+disease_mod4 <- stan_glm(Time2_perceived_vulnerability_to_disease_total ~ Time2_Illnesses + Time2_Meds + Time2_intolerance_of_uncertainty_total + Time2_quality_of_life_total + Time2_impact_of_events_scale_total + Time2_Illnesses*Time2_Meds + Time2_intolerance_of_uncertainty_total*Time2_impact_of_events_scale_total + Time2_quality_of_life_total*Time2_Illnesses,
+                        data = covid,
+                        family = gaussian(),
+                        chains = 4,
+                        iter = 5000 * 2)
+
+pp_check(disease_mod4, nreps = 50)
+```
+
+### Getting better.... can it be improved???
+###The best of these is in the main RMD
+
+
+
+# PREDICTING PPE USE
+
+Time1_preventive_action_taken_scale_PPEuse
+  predictors: age, illnesses, Time1_impact_of_events_scale_total, Time1_Religious_Affiliation, Time1_five_factor_mindfulness_questionnaire_total, Time1_number_of_times_leave_home_per_day, Time1_intolerance_of_uncertainty_total, Time1_patient_health_questionnaire_total, Time1_Educational_attainment
+  
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
 cov_mod2 <- stan_glm(Time1_preventive_action_taken_scale_PPEuse ~
-Time1_Gender + Time1_Age + Time1_perceived_susceptibility_to_COVID19 + Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total + Time1_Illnesses + Time1_intolerance_of_uncertainty_total + Time1_Illnesses*Time1_patient_health_questionnaire_total +
+Time1_Age + Time1_perceived_susceptibility_to_COVID19 + Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total + Time1_Illnesses + Time1_intolerance_of_uncertainty_total + Time1_Illnesses*Time1_patient_health_questionnaire_total +
 Time1_perceived_vulnerability_to_disease*Time1_patient_health_questionnaire_total + Time1_perceived_vulnerability_to_disease*Time1_Illnesses + Time1_intolerance_of_uncertainty_total*Time1_impact_of_events_scale_total,
                      data = covid,
                      family = gaussian(),
                      chains = 4,
-                     iter = 10000*2)
+                     iter = 5000*2)
                        
                        
-pp_check(cov_mod2)
-```
+pp_check(cov_mod2, nreps = 50)
 
 
-
-Time1_preventive_action_taken_scale_PPEuse
-  predictors: age, illnesses, Time1_impact_of_events_scale_total, Time1_Religious_Affiliation, Time1_five_factor_mindfulness_questionnaire_total, Time1_number_of_times_leave_home_per_day, Time1_intolerance_of_uncertainty_total, Time1_patient_health_questionnaire_total, Time1_Educational_attainment
-
-#predicting time 2
-```{r}
 set.seed(84735)
-cov_mod3 <- stan_glm(Time2_preventive_action_taken_scale_PPEuse ~
-Time2_Illnesses + Time2_five_factor_mindfulness_questionnaire_total + Time2_patient_health_questionnaire_total + Time2_patient_health_questionnaire_total*Time2_Illnesses,
+cov_mod4 <- stan_glm(Time1_preventive_action_taken_scale_PPEuse ~
+Time1_Age + Time1_perceived_susceptibility_to_COVID19 + Time1_impact_of_events_scale_total + Time1_general_health_quetionnaire_total + Time1_Illnesses + Time1_intolerance_of_uncertainty_total + Time1_Illnesses*Time1_general_health_quetionnaire_total +
+Time1_perceived_vulnerability_to_disease*Time1_general_health_quetionnaire_total + Time1_perceived_vulnerability_to_disease*Time1_Illnesses + Time1_intolerance_of_uncertainty_total*Time1_impact_of_events_scale_total,
                      data = covid,
                      family = gaussian(),
                      chains = 4,
-                     iter = 10000*2)
+                     iter = 5000*2)
                        
                        
-pp_check(cov_mod3)
+pp_check(cov_mod4, nreps = 50)
+
+
+#try travel avoid scale instead of ppe use
+set.seed(84735)
+cov_mod5 <- stan_glm(Time1_preventive_action_taken_scale_avoid_travel_people ~
+Time1_Age + Time1_perceived_susceptibility_to_COVID19 + Time1_impact_of_events_scale_total + Time1_general_health_quetionnaire_total + Time1_Illnesses + Time1_intolerance_of_uncertainty_total + Time1_Illnesses*Time1_general_health_quetionnaire_total +
+Time1_perceived_vulnerability_to_disease*Time1_general_health_quetionnaire_total + Time1_perceived_vulnerability_to_disease*Time1_Illnesses + Time1_intolerance_of_uncertainty_total*Time1_impact_of_events_scale_total,
+                     data = covid,
+                     family = poisson(),
+                     chains = 4,
+                     iter = 5000*2)
+                       
+                       
+pp_check(cov_mod5, nreps = 50)
+
+set.seed(84735)
+cov_mod6 <- stan_glm(Time1_preventive_action_taken_scale_avoid_travel_people ~
+Time1_Age + Time1_Gender + Time1_Marital_status +  Time1_five_factor_mindfulness_questionnaire_total + Time1_Religious_Affiliation + Time1_Age*Time1_Marital_status,
+                     data = covid,
+                     family = poisson(),
+                     chains = 4,
+                     iter = 5000*2)
+                       
+pp_check(cov_mod6, nreps = 50)
+
+```
+### *IF* we can capture the bimodality of PPE use / travel distribution: could be useful!
+
+## predicting time 2 instead
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+cov_mod3 <- stan_glm(Time2_preventive_action_taken_scale_PPEuse ~ Time1_Age + Time2_Illnesses + Time2_five_factor_mindfulness_questionnaire_total + Time2_patient_health_questionnaire_total +  Time2_patient_health_questionnaire_total*Time2_Illnesses,
+                     data = covid,
+                     family = gaussian(),
+                     chains = 4,
+                     iter = 5000*2)
+                       
+                       
+pp_check(cov_mod3, nreps = 50)
+```
+### still does not capture the bimodality 
+
+
+
+# PREDICTING IMPACT OF EVENTS
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+impact <- stan_glm(Time1_impact_of_events_scale_total ~ Time1_Race + Time1_Age +  Time1_intolerance_of_uncertainty_total + Time1_patient_health_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_preventive_action_taken_scale_PPEuse + Time1_Age*Time1_preventive_action_taken_scale_PPEuse + Time1_patient_health_questionnaire_total*Time1_preventive_action_taken_scale_PPEuse,
+                     data = covid,
+                     family = gaussian(),
+                     chains = 4,
+                     iter = 5000*2)
+                       
+                       
+pp_check(impact, nreps = 50)
+```
+### Need to capture the bimodality 
+
+
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+impact2 <- stan_glm(Time1_impact_of_events_scale_total ~ Time1_intolerance_of_uncertainty_total + Time1_patient_health_questionnaire_total + Time1_intolerance_of_uncertainty_total*Time1_patient_health_questionnaire_total,
+                     data = covid,
+                     family = gaussian(),
+                     chains = 4,
+                     iter = 5000*2)
+
+pp_check(impact2, nreps = 50)
+```
+
+### Need to capture bimodality
+### Possibly poisson instead of gaussian?
+
+
+# PREDICTING SELF-ISOLATION (binary variable using logistic regression)
+## Copied in the main RMD
+```{r echo=TRUE, results = 'hide'}
+covid_bin <- covid %>%
+  mutate(Time1_self_isolation_yes_or_no = if_else(Time1_self_isolation_yes_or_no == '1', '0', '1')) %>%
+    mutate(Time1_self_isolation_yes_or_no = as.integer(Time1_self_isolation_yes_or_no))
+
+set.seed(84735)
+log_mod <- stan_glm(Time1_self_isolation_yes_or_no   ~ Time1_patient_health_questionnaire_total +  Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total*Time1_impact_of_events_scale_total ,
+                        data = covid_bin,
+                        family = binomial('logit'),
+                        chains = 4,
+                        iter = 5000 * 2)
+
+pp_check(log_mod, nreps = 50)
 ```
