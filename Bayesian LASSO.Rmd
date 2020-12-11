@@ -101,11 +101,115 @@ timeone_clean <- timeone_clean %>%
   mutate(`SOC Category` = replace_na(`SOC Category`, "Unknown"), 
          State = replace_na(State, "Unknown"),  
          State = recode(State, "USA" = "Unknown"), 
+         State = recode(State, "NONE" = "Unknown"),
+         State = recode(State, "US" = "Unknown"), 
+         State = recode(State, "GE" = "GA"),
+         State = recode(State, "NEW  YORK" = "NY"), 
+         State = recode(State, "34" = "Unknown"),
          Isolation_number_of_days = replace_na(Isolation_number_of_days, 0),  
          Religion = replace_na(Religion, "Unknown")) 
 
 colnames(timeone_clean)[3] <- "SOC_Category"
 
+timeone_clean <- timeone_clean %>% 
+  mutate(State_dummy =  recode(State, 
+                           "AL" = 1,
+                           "AK" = 2,
+                           "AZ" = 3,
+                           "AR" = 4,
+                           "CA" = 5,
+                           "CO" = 6,
+                           "CT" = 7,
+                           "DE" = 8,
+                           "DC" = 9,
+                           "FL" = 10,
+                           "GA" = 11,
+                           "HI" = 12,
+                           "ID" = 13,
+                           "IL" = 14,
+                           "IN" = 15, 
+                           "IA" = 16,
+                           "KS" = 17,
+                           "KY" = 18,
+                           "LA" = 19, 
+                           "ME" = 20,
+                           "MD" = 21,
+                           "MA" = 22,
+                           "MI" = 23,
+                           "MN" = 24,
+                           "MS" = 25,
+                           "MO" = 26,
+                           "MT" = 27,
+                           "NE" = 28,
+                           "NV" = 29,
+                           "NH" = 30,
+                           "NJ" = 31,
+                           "NM" = 32,
+                           "NY" = 33,
+                           "NC" = 34,
+                           "ND" = 35,
+                           "OH" = 36,
+                           "OK" = 37,
+                           "OR" = 38,
+                           "PA" = 39,
+                           "RI" = 40,
+                           "SC" = 41,
+                           "SD" = 42,
+                           "TN" = 43,
+                           "TX" = 44,
+                           "UT" = 45,
+                           "VT" = 46,
+                           "VA" = 47,
+                           "WA" = 48,
+                           "WV" = 49,
+                           "WI" = 50,
+                           "WY" = 51,
+                           "Unknown" = 0),
+         Religion_dummy = recode(Religion, 
+                           "Protestant" = 1, 
+                           "Roman Catholic" = 2,  
+                           "Hindu" = 3, 
+                           "Buddhist" = 4, 
+                           "Mormon" = 5,  
+                           "Jewish" = 6, 
+                           "Agnostic" = 7, 
+                           "Atheist" = 8, 
+                           "Nothing in Particular" = 9, 
+                           "Something Else" = 10, 
+                           "Unknown" = 0
+                           ),
+         SOC_Category_dummy = recode(SOC_Category, 
+                              "Management Occupations" = 1, 
+                              "Business and Financial Operations Occupations" = 2, 
+                              "Computer and Mathematical Occupations" = 3, 
+                              "Architecture and Engineering Occupations" = 4, 
+                              "Life, Physical, and Social Science Occupations" = 5, 
+                              "Community and Social Service Occupations" = 6, 
+                              "Legal Occupations" = 7, 
+                              "Educational Instruction and Library Occupations" = 8, 
+                              "Arts, Design, Entertainment, Sports, and Media Occupations" = 9,
+                              "Healthcare Practitioners and Technical Occupations" = 10, 
+                              "Healthcare Support Occupations" = 11, 
+                              "Protective Service Occupations" = 12, 
+                              "Food Preparation and Serving Related Occupations" = 13,  
+                              "Building and Grounds Cleaning and Maintenance Occupations" = 14, 
+                              "Personal Care and Service Occupations" = 15, 
+                              "Sales and Related Occupations" = 16, 
+                              "Office and Administrative Support Occupations" = 17, 
+                              "Farming, Fishing, and Forestry Occupations" = 18, 
+                              "Construction and Extraction Occupations" = 19, 
+                              "Installation, Maintenance, and Repair Occupations" = 20, 
+                              "Production Occupations" = 21, 
+                              "Transportation and Material Moving Occupations" = 22, 
+                              "Military Specific Occupations" = 23,  
+                              "Unknown" = 0)
+) %>% 
+  dplyr::select(-SOC_Category, -State, -Religion)
+
+```
+
+
+```{r}
 # 4. Imputate Age, Annual_income, Illnesses, Meds, Isolation_number_times_leave_per_day, Perceived_susceptibility_COVID: 
 imputated_timeone <- mice(timeone_clean, m = 5, meth ='pmm', seed = 84735)
 # summary(imputated_timeone)
@@ -114,6 +218,7 @@ p1 <- densityplot(imputated_timeone) # i think this is good? probably needs revi
 
 complete_timeone <- complete(imputated_timeone, 1)
 ```
+
 
 Before applying the model, I am assuming that we will need to do some sort of cross-validation, so I am going to split the dataset in half to make training and testing set for the algorithm:
 
@@ -143,7 +248,7 @@ set.seed(84735)
 
 # Define complicated model for model matrix: 
 model_formula <-
-  "Preventive_Action_Taken_Scale_PPEuse_Total ~ Age + Gender + SOC_Category + Religion + State + Employment_status_Befor_COVID + Employment_status_After_COVID + Marital_status + Education + Race + Annual_income + Illnesses + Meds + Accomodation + Isolation_yesorno + Isolation_number_of_days + Isolation_number_times_leave_per_day + Perceived_susceptibility_COVID + FFMQdescribetotal + FFMQnonreacttotal + FFMQnonjudgetotal + FFMQobservetotal + FFMQawaretotal + FFMQtotal + FFMQnonjudgemean + FFMQnonreactmean + FFMQobservemean + FFMQawaremean + FFMQdescribemean + Patient_Health_Questionnaire_Total + Quality_of_Life_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Intolerance_of_Uncertainty_Total + Preventive_Action_Taken_Scale_Avoid_Travel_People_Total + Impact_of_Events_Scale_Total + Number_of_children" %>%
+  "Preventive_Action_Taken_Scale_PPEuse_Total ~ Age + Gender + SOC_Category_dummy + Religion_dummy + State_dummy + Employment_status_Befor_COVID + Employment_status_After_COVID + Marital_status + Education + Race + Annual_income + Illnesses + Meds + Accomodation + Isolation_yesorno + Isolation_number_of_days + Isolation_number_times_leave_per_day + Perceived_susceptibility_COVID + FFMQdescribetotal + FFMQnonreacttotal + FFMQnonjudgetotal + FFMQobservetotal + FFMQawaretotal + FFMQtotal + FFMQnonjudgemean + FFMQnonreactmean + FFMQobservemean + FFMQawaremean + FFMQdescribemean + Patient_Health_Questionnaire_Total + Quality_of_Life_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Intolerance_of_Uncertainty_Total + Preventive_Action_Taken_Scale_Avoid_Travel_People_Total + Impact_of_Events_Scale_Total + Number_of_children" %>%
   as.formula()
 
 # Model matrix assembly for train data: 
@@ -153,8 +258,8 @@ x_matrix_train <- train %>%
   as.matrix()
 
 # parameter setup
-burnin <- 2500
-iter <- 5000
+burnin <- 5000
+iter <- 10000
 initial.beta <- rep(-500, dim(x_matrix_train)[2]) # assigning an extreme initial value for all betas
 initial.lambda2 <- 10 # assigning an extreme initial value for lambda (penalty parameter)
 initial.variance <- 500 # assigning an extreme initial value for variance parameter
@@ -181,8 +286,7 @@ colMedians(coef.lasso[-seq(burnin), -1]) # new posterior median estimations
 
 The following results could be different if we specify our prior distributions instead of giving extreme values: 
 
-
-!! issues here? 
+!! issues here? --> Need to make dummy vars w categorical variables for LASSO!!!
 ```{r}
 # This needs some work here
 # Compare regular LASSO vs. BLASSO: number of coefficients shrunk to zero 
@@ -197,11 +301,32 @@ sum(coef.glmnet == 0)
 sum(colMedians(lasso$beta[-seq(burnin), ]) == 0)
 ```
 
+```{r}
+coefficients <- tribble( 
+  ~"var name", ~"beta", ~"median coef", ~"median tau2i", 
+   "Age", "beta1", -0.0008406, 0.3313,
+   "Religion_dummy", "beta4", -0.168963, 0.137869,
+   "Employment_status_After_COVID", "beta7", -0.00788, 0.3448, 
+   "Education", "beta9", 0.17121, 0.2283,
+   "Annual_income", "beta11", 2.486e-06, 0.2679,
+   "Intolerance_of_Uncertainty_Total", "beta35", 0.12965, 0.15457,
+   "Preventive_Action_Taken_Scale_Avoid_Travel_People_Total", "beta36", 0.050522, 0.05764
+  )
+```
+
 If we get that all of our betas are shrunken to zero, try tuning hyperparameters (Park & Casella, 2008).
+
+Diagnostics: 
+
+```{r}
+plot(lasso, burnin = 5000)
+
+summary(lasso, burnin = 5000)
+```
 
 Cross Validation: 
 
-- do we use LASSO based CV or Bayesian CV or a combo
+- do we use LASSO-based CV or Bayesian CV or a combo
 - how can we visualize this
 
 # References: 
