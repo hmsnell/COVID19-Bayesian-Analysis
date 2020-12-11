@@ -142,7 +142,10 @@ timeone_clean <- timeone_clean %>%
                               Religion_Something_else == 1 ~ "Something Else")) %>% 
   select(-(Religion_Protestant:Religion_12_describe), -City, -Country, -Meds_2_describe, -Illnesses_2_describe)
 
-
+write_csv(timeone_clean, "timeone_clean.csv")
 
 ```
 
+# References 
+
+[standard occupational classifications - u.s. dept labor stats](https://www.bls.gov/soc/2018/major_groups.html)

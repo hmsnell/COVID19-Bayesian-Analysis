@@ -1,0 +1,197 @@
+---
+title: "LASSO + Bayes Regression"
+author: "Hannah Snell"
+date: "12/10/2020"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(glmnet)
+library(monomvn)
+library(miscTools)
+library(mice)
+
+set.seed(84735)
+
+timeone_clean <- read_csv("timeone_clean.csv")
+```
+
+# Using the LASSO Algorithm and Bayesian Regression to best predict PPE use! 
+
+_Using the `monomvm` package for Bayesian Regression and LASSO:_ 
+
+## Template Code: 
+
+```{r}
+# Example code from Stack Overflow: 
+
+burnin <- 500
+iter <- 1000
+initial.beta <- rep(-500, dim(x2)[2]) # assigning an extreme initial value for all betas
+initial.lambda2 <- 10 # assigning an extreme initial value for lambda (penalty parameter)
+initial.variance <- 500 # assigning an extreme initial value for variance parameter
+
+# starting the Gibbs sampler here
+lasso <- blasso(X = x2, # covariate matrix 
+                y = y,  # response vector
+                T = iter, # number of iterations
+                beta = initial.beta, 
+                lambda2 = initial.lambda2,  
+                s2 = initial.variance)
+
+# collecting draws for some of the parameters for visualization
+coef.lasso <- as.data.frame(cbind(iter = seq(iter), 
+                              beta1 = lasso$beta[, "b.1"], 
+                              beta2 = lasso$beta[, "b.2"], 
+                              variance = lasso$s2, 
+                              lambda.square = lasso$lambda2))
+```
+
+
+```{r}
+colMedians(coef.lasso[-seq(burnin), -1]) # new posterior mean estimations
+```
+
+
+The following results could be different if we specify our prior distributions instead of giving extreme values: 
+
+```{r}
+# Compare regular LASSO vs. BLASSO: number of coefficients shrunk to zero 
+
+# Regular LASSO
+fit.glmnet <-  glmnet(as.matrix(x2), y, 
+                        lambda=cv.glmnet(as.matrix(x2), y)$lambda.1se)
+coef.glmnet <- coef(fit.glmnet)
+sum(coef.glmnet == 0)
+
+# BLASSO
+sum(colMedians(lasso$beta[-seq(burnin), ]) == 0)
+```
+
+If we get that all of our betas are shrunken to zero, try tuning hyperparameters (Park & Casella, 2008)
+
+## Model Attempt (Hannah): 
+
+We will have issues running LASSO with NA values present anywhere in our data. We want to keep as many rows as possible since our dataset is small, so we can use multiple imputation to fill in the missing value NAs with the mean of the particular variable. 
+
+```{r}
+# 1. Remove variables that we won't use: 
+timeone_clean <- timeone_clean %>% 
+  dplyr::select(-Occupation, -`ID_case#`, -`Date`)
+
+# 2. Find the total NA's per variable: 
+varsNA <- as.data.frame(sapply(timeone_clean, function(x) sum(is.na(x))))
+
+# 3. Extra data cleaning before multiple imputation: 
+
+# Isolate a small df of all the vars with NA's 
+colnames(varsNA)[1] <- "NAs"
+varsNA <- varsNA %>% 
+  filter(NAs != 0)
+
+# Clean all the vars with NA's (the ones that we won't imputate)
+timeone_clean <- timeone_clean %>% 
+  mutate(`SOC Category` = replace_na(`SOC Category`, "Unknown"), 
+         State = replace_na(State, "Unknown"),  
+         State = recode(State, "USA" = "Unknown"), 
+         Isolation_number_of_days = replace_na(Isolation_number_of_days, 0),  
+         Religion = replace_na(Religion, "Unknown")) 
+
+colnames(timeone_clean)[3] <- "SOC_Cateogory"
+
+# Imputate Age, Annual_income, Illnesses, Meds, Isolation_number_times_leave_per_day, Perceived_susceptibility_COVID: 
+imputated_timeone <- mice(timeone_clean, m = 5, meth ='pmm', seed = 84735)
+# summary(imputated_timeone)
+
+p1 <- densityplot(imputated_timeone) # i think this is good? probably needs reviewing
+
+complete_timeone <- complete(imputated_timeone, 1)
+```
+
+Before applying the model, I am assuming that we will need to do some sort of cross-validation, so I am going to split the dataset in half to make training and testing set for the algorithm:
+
+```{r}
+set.seed(84735)
+
+samplesize <- 225
+
+train_ind <- sample(nrow(complete_timeone), size = samplesize, replace = F, prob = NULL)
+
+train <- complete_timeone[train_ind, ]
+test <- complete_timeone[-train_ind, ]
+```
+
+Time for Bayesian LASSO:
+
+```{r}
+# can't get this to run!!!!!!!!!!!!!!!!!!!!!!!! 
+set.seed(84735)
+
+# convert categorical vars to factors before putting them in the model: 
+train <- train %>% 
+  mutate(SOC_Cateogory = as.factor(SOC_Cateogory), 
+         State = as.factor(State), 
+         Religion = as.factor(Religion)) # %>% 
+# dplyr::select(-SOC_Cateogory, -State, -Religion)
+
+burnin <- 2500
+iter <- 5000
+initial.beta <- rep(-500, dim(train)[2]) # assigning an extreme initial value for all betas
+initial.lambda2 <- 10 # assigning an extreme initial value for lambda (penalty parameter)
+initial.variance <- 500 # assigning an extreme initial value for variance parameter
+
+# starting the Gibbs sampler here
+suppressWarnings(lasso <- blasso(X = train, # covariate matrix (we put our dataset in here - does NOT need to be a matrix)
+                y = train$Preventive_Action_Taken_Scale_PPEuse_Total,  # response vector
+                T = iter, # number of iterations
+                beta = initial.beta, 
+                lambda2 = initial.lambda2,  
+                s2 = initial.variance))
+
+# collecting draws for some of the parameters for visualization
+coef.lasso <- as.data.frame(cbind(iter = seq(iter), 
+                              beta1 = lasso$beta[, "b.1"], 
+                              beta2 = lasso$beta[, "b.2"], 
+                              variance = lasso$s2, 
+                              lambda.square = lasso$lambda2))
+```
+
+
+```{r}
+colMedians(coef.lasso[-seq(burnin), -1]) # new posterior mean estimations
+```
+
+
+The following results could be different if we specify our prior distributions instead of giving extreme values: 
+
+```{r}
+# Compare regular LASSO vs. BLASSO: number of coefficients shrunk to zero 
+
+# THIS RUNS!!!!!!!!!!!!!!!!!!!!!!!!!!!!! so its not a dataset problem w glmnet type and there are some nonzero slopes!
+# Regular LASSO
+fit.glmnet <- glmnet(as.matrix(train), train$Preventive_Action_Taken_Scale_PPEuse_Total, 
+                        lambda = cv.glmnet(as.matrix(train), train$Preventive_Action_Taken_Scale_PPEuse_Total)$lambda.1se)
+coef.glmnet <- coef(fit.glmnet)
+sum(coef.glmnet == 0)
+
+# BLASSO
+sum(colMedians(lasso$beta[-seq(burnin), ]) == 0)
+```
+
+If we get that all of our betas are shrunken to zero, try tuning hyperparameters (Park & Casella, 2008)
+
+
+# References: 
+
+[mice package](https://datascienceplus.com/imputing-missing-data-with-r-mice-package)
+[park & casella, 2008](https://www-jstor-org.libproxy.smith.edu/stable/pdf/27640090.pdf?refreqid=excelsior%3A935888303bc6a810c32ec747294592bb)
+[bayesian lasso guide, duke](http://www2.stat.duke.edu/~rcs46/lectures_2015/14-bayes1/14-bayes3.pdf)
+[train & test set](https://stackoverflow.com/questions/17200114/how-to-split-data-into-training-testing-sets-using-sample-function)
+[handling NAs in LASSO](https://stats.stackexchange.com/questions/152057/how-to-handle-na-values-in-shrinkage-lasso-method-using-glmnet/152179)
+[counting NAs over all vars](https://sebastiansauer.github.io/sum-isna/)
+[replace_na function](https://tidyr.tidyverse.org/reference/replace_na.html)
+[blasso template code](https://stats.stackexchange.com/questions/268734/how-to-use-blasso-function-in-r-package-monomvn)
+
