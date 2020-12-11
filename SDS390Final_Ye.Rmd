@@ -120,6 +120,30 @@ mod3 <- lm(Preventive_Action_Taken_Scale_PPEuse_Total ~ Age + as.factor(Gender) 
 summary(mod3)
 ```
 
+##20201210 test general health
+```{r}
+modgen <- lm(General_Health_Questionnaire_Negative_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total  + Perceived_Vulnerability_to_Disease_Total + Isolation_yesorno,
+                             data = time1) 
+summary(modgen)
+
+ggplot(aes(x=General_Health_Questionnaire_Negative_Total), data=time1) + geom_histogram()
+summary(time1$General_Health_Questionnaire_Negative_Total)
+
+
+set.seed(84735)
+mod_gen <- stan_glm(General_Health_Questionnaire_Negative_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total  + Perceived_Vulnerability_to_Disease_Total + Isolation_yesorno,
+                             data = time1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+
+set.seed(84735)
+pp_check(mod_gen, nreps = 50)
+
+model_summary <- summary(mod_gen)
+head(as.data.frame(model_summary), -2)
+vif(mod_gen)
+```
 
 
 
