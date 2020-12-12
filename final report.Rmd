@@ -3,6 +3,7 @@ title: "Bayes Final Project"
 author: "Hannah Snell, Natalia Iannucci, Dianne Caravela, Elaine Ya"
 date: "12/17/2020"
 output: html_document
+---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -27,6 +28,12 @@ library(bayesplot)
 
 ### Select Variables
 
+```{r}
+covid <- read_csv("time1Time2Data.csv")
+time_1 <- read_csv("Sheet 1-Table 1-1.csv")
+```
+
+
 control for demographics (age, sex, educational attainment)
 
 ### hypothesis
@@ -35,7 +42,36 @@ control for demographics (age, sex, educational attainment)
 
 examine distribution to determine type of regression (poisson, gaussian, binom, etc)
 
-Create model 
+Create model
+## One for predicting quality of life
+
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+
+mod_QOL <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total + Patient_Health_Questionnaire_Total*Illnesses + Illnesses*General_Health_Questionnaire_Negative_Total,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_QOL, nreps = 50)
+
+
+# Trace plots of parallel chains
+mcmc_trace(mod_QOL, size = 0.1)
+#look fine
+
+# Density plots of parallel chains
+mcmc_dens_overlay(mod_QOL)
+#looks fine, chains have stabilized
+```
+
+```{r}
+model_summary <- summary(mod_QOL)
+head(as.data.frame(model_summary), -2)
+```
+
+## One for predicitng PPE use
 
 Run diagnostics 
 

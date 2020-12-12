@@ -1,0 +1,284 @@
+---
+title: "Dianne_stuff"
+author: "Dianne Caravela"
+date: "12/8/2020"
+output: html_document
+---
+GIT PULL ORIGIN MAIN 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(bayesrules)
+library(rstan)
+library(readr)
+library(rstanarm)
+library(bayesplot)
+```
+
+```{r}
+covid <- read_csv("time1Time2Data.csv")
+time_1 <- read_csv("Sheet 1-Table 1-1.csv")
+time_1 <- time_1 %>%
+  filter(is.na(General_Health_Questionnaire_Negative_Total)==FALSE) %>%
+  filter(is.na(Age)==FALSE) %>%
+  filter(is.na(Gender)==FALSE) %>%
+  filter(is.na(Education)==FALSE) %>%
+  filter(is.na(Intolerance_of_Uncertainty_Total)==FALSE) %>%
+  filter(is.na(FFMQtotal)==FALSE) %>%
+  filter(is.na(Patient_Health_Questionnaire_Total)==FALSE) %>%
+  filter(is.na(Illnesses)==FALSE) %>%
+  filter(is.na(Perceived_Vulnerability_to_Disease_Total)==FALSE) %>%
+  filter(is.na(Perceived_susceptibility_COVID)==FALSE)
+
+```
+
+
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+pois_mod2 <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_general_health_quetionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_Illnesses*Time1_general_health_quetionnaire_total + Time1_general_health_quetionnaire_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total*Time1_Illnesses, 
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+
+pp_check(pois_mod2, nreps = 50)
+
+# Trace plots of parallel chains
+mcmc_trace(pois_mod2, size = 0.1)
+#look fine
+
+# Density plots of parallel chains
+mcmc_dens_overlay(pois_mod2)
+#looks fine, chains have stabilized
+
+model_summary <- summary(pois_mod2)
+head(as.data.frame(model_summary), -2)
+
+
+predictions <-posterior_predict(pois_mod2,
+  newdata = covid)
+
+ppc_intervals(covid$Time1_quality_of_life_Total,
+yrep = predictions,
+prob = 0.5, prob_outer = 0.95)
+#not sure how to interpret this
+
+set.seed(84735)
+#cv_procedure <- prediction_summary_cv(
+#data = covid, model = pois_mod2, k = 10)
+
+#cv_procedure$cv
+#within 50 not great, but mae_scaled not too bad
+```
+
+```{r}
+set.seed(84735)
+my_model <- stan_glm( Time1_quality_of_life_Total ~ Time1_Age + Time1_Gender + Time1_Educational_attainment + Time1_Race + Time1_Annual_income + Time1_Educational_attainment * Time1_Annual_income + Time1_Illnesses + Time1_general_health_quetionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_Illnesses*Time1_general_health_quetionnaire_total + Time1_general_health_quetionnaire_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total*Time1_Illnesses,
+                      data = covid,
+                      family= poisson(),
+                      chains = 4,
+                      iter = 5000*2
+  
+)
+
+pp_check(my_model, nreps = 50)
+
+# Trace plots of parallel chains
+mcmc_trace(my_model, size = 0.1)
+#all good
+
+# Density plots of parallel chains
+mcmc_dens_overlay(my_model)
+#all good
+
+model_summary <- summary(my_model)
+head(as.data.frame(model_summary), -2)
+#everything tiny :(
+```
+
+```{r}
+set.seed(84735)
+mod_c5 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total + Patient_Health_Questionnaire_Total*Illnesses + Illnesses*General_Health_Questionnaire_Negative_Total,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_c5, nreps = 50)
+
+model_summary <- summary(mod_c5)
+head(as.data.frame(model_summary), -2)
+
+loo_more <- loo(mod_c5)
+```
+
+```{r}
+set.seed(84735)
+mod_c5 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_c5, nreps = 50)
+
+model_summary <- summary(mod_c5)
+head(as.data.frame(model_summary), -2)
+
+loo_more <- loo(mod_c5)
+```
+
+```{r} 
+
+#changing response variable to General Health Questionnaire (GHQ)
+#Ask elaine what negative total means?
+set.seed(84735)
+mod_GHQ <- stan_glm(General_Health_Questionnaire_Negative_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + Perceived_Vulnerability_to_Disease_Total,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_GHQ, nreps = 50)
+#:/// not fantastic
+
+model_summary_GHQ <- summary(mod_GHQ)
+head(as.data.frame(model_summary_GHQ), -2)
+#Illnesses much smaller coeff. now
+loo_GHQ <- loo(mod_GHQ)
+#Loo
+
+set.seed(84735)
+cv<-prediction_summary_cv(
+data = time_1, model = mod_GHQ, k = 10)
+
+cv
+
+# mae 2.42
+# mae scaled .9166961
+# 50% - .5358586 
+# 90% 0.9486364
+```
+
+
+```{r}
+#Took out FFMQ Total
+set.seed(84735)
+mod_GHQ1 <- stan_glm(General_Health_Questionnaire_Negative_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + Illnesses + Perceived_Vulnerability_to_Disease_Total,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_GHQ1, nreps = 50)
+
+#Illnesses much smaller coeff. now
+loo_GHQ1 <- loo(mod_GHQ1)
+
+set.seed(84735)
+cv_1<-prediction_summary_cv(
+data =time_1, model = mod_GHQ1, k = 10)
+
+cv_1
+
+# mae 2.37
+# mae scaled 0.8983398 worse that first
+# 50% - 0.5423737 Better than first
+# 90%  0.9463636 
+```
+
+```{r}
+#Adding interaction btwn gen health and 
+set.seed(84735)
+mod_GHQ3 <- stan_glm(General_Health_Questionnaire_Negative_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + Perceived_Vulnerability_to_Disease_Total + Quality_of_Life_Total + Patient_Health_Questionnaire_Total*Quality_of_Life_Total,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_GHQ3, nreps = 50)
+
+loo_GHQ3 <- loo(mod_GHQ3)
+
+set.seed(84735)
+cv_3<-prediction_summary_cv(
+data =time_1, model = mod_GHQ3, k = 10)
+
+cv_3
+# mae 2.338943
+# mae scaled 0.888829 worse :(
+# 50% - 0.5447475
+# 90%  0.948636 Basically the same as others
+
+loo_compare(loo_GHQ, loo_GHQ1, loo_GHQ2, loo_GHQ3)
+# no change
+```
+
+
+```{r}
+#!!!CURRENT BEST!!!!!
+#Adding Quality of life Total
+set.seed(84735)
+mod_GHQ2 <- stan_glm(General_Health_Questionnaire_Negative_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + Perceived_Vulnerability_to_Disease_Total + Quality_of_Life_Total,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_GHQ2, nreps = 50)
+
+model_summary <- summary(mod_c5)
+head(as.data.frame(model_summary), -2)
+
+set.seed(84735)
+cv_2<-prediction_summary_cv(
+data =time_1, model = mod_GHQ2, k = 10)
+
+cv_2
+
+# mae 2.44712
+# mae scaled 0.9325629 Best so far!
+# 50% - 0.5336364 ehhh
+# 90%  0.9486364 Basically the same as others
+
+loo_GHQ2 <- loo(mod_GHQ2)
+
+loo_compare(loo_GHQ, loo_GHQ1, loo_GHQ2)
+# 3rd model best so far
+
+```
+
+```{r}
+#Adding perceived susceptibility to COVID
+set.seed(84735)
+mod_GHQ4 <- stan_glm(General_Health_Questionnaire_Negative_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + Perceived_Vulnerability_to_Disease_Total + Quality_of_Life_Total + Perceived_susceptibility_COVID,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735) 
+pp_check(mod_GHQ4, nreps = 50)
+
+model_summary <- summary(mod_c5)
+head(as.data.frame(model_summary), -2)
+
+set.seed(84735)
+cv_4 <-prediction_summary_cv(
+data =time_1, model = mod_GHQ4, k = 10)
+
+cv_4
+
+# mae 2.372539
+# mae scaled 0.9160814 not as good
+# 50% - 0.5491919
+# 90%  0.9462121
+
+loo_GHQ4 <- loo(mod_GHQ4)
+
+loo_compare(loo_GHQ, loo_GHQ1, loo_GHQ2, loo_GHQ3, loo_GHQ4)
+# 3rd model best so far
+
+```
+
+

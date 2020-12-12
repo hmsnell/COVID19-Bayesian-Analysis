@@ -79,15 +79,6 @@ Intolerance of uncertainty
 Perceived susceptibility to COVID 19 
 Perceived susceptibility to disease 
 
-
-
-
-
-
-
-
-
-
 Hannah's List - Predictor Vars
 - Age (no cleaning needed)
 - Gender (no cleaning needed) 
@@ -102,234 +93,15 @@ Hannah's List - Predictor Vars
 - Perceived Susceptibility to COVID
 - FFMQ Total Vars 
 
-# Predicting Quality of Life 
 
-```{r echo=TRUE, results = 'hide'}
-set.seed(84735)
-pois_mod2 <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_general_health_quetionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_Illnesses*Time1_general_health_quetionnaire_total + Time1_general_health_quetionnaire_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total*Time1_Illnesses, 
-                             data = covid,
-                             family = poisson(),
-                             chains = 4,
-                             iter = 5000*2)
-
-pp_check(pois_mod2, nreps = 50)
-
-# Trace plots of parallel chains
-mcmc_trace(pois_mod2, size = 0.1)
-#look fine
-
-# Density plots of parallel chains
-mcmc_dens_overlay(pois_mod2)
-#looks fine, chains have stabilized
-
-model_summary <- summary(pois_mod2)
-head(as.data.frame(model_summary), -2)
-
-
-predictions <-posterior_predict(pois_mod2,
-  newdata = covid)
-
-ppc_intervals(covid$Time1_quality_of_life_Total,
-yrep = predictions,
-prob = 0.5, prob_outer = 0.95)
-#not sure how to interpret this
-
-set.seed(84735)
-#cv_procedure <- prediction_summary_cv(
-#data = covid, model = pois_mod2, k = 10)
-
-#cv_procedure$cv
-#within 50 not great, but mae_scaled not too bad
-```
-
-Can we get the middle/peak more accurate?
-
-#Predicting Self-Isolation (Logistic Regression)
 
 ```{r echo=TRUE, results = 'hide'}
 covid_bin <- covid %>%
   mutate(Time1_self_isolation_yes_or_no = if_else(Time1_self_isolation_yes_or_no == '1', '0', '1')) %>%
     mutate(Time1_self_isolation_yes_or_no = as.integer(Time1_self_isolation_yes_or_no))
-
-set.seed(84735)
-log_mod <- stan_glm(Time1_self_isolation_yes_or_no   ~ Time1_patient_health_questionnaire_total +  Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total*Time1_impact_of_events_scale_total ,
-                        data = covid_bin,
-                        family = binomial('logit'),
-                        chains = 4,
-                        iter = 5000 * 2)
-
-pp_check(log_mod)
-```
-
-
-# Predicting Perceived Vulnerability to Disease At Time 2
-
-```{r echo=TRUE, results = 'hide'}
-set.seed(84735)
-disease_mod3 <- stan_glm(Time2_perceived_vulnerability_to_disease_total ~ Time2_Illnesses + Time2_Meds + Time2_intolerance_of_uncertainty_total + Time2_impact_of_events_scale_total + Time2_Illnesses*Time2_Meds + Time2_intolerance_of_uncertainty_total*Time2_impact_of_events_scale_total,
-                        data = covid,
-                        family = gaussian(),
-                        chains = 4,
-                        iter = 5000 * 2)
-
-pp_check(disease_mod3, nreps = 50)
-```
-
-This is not perfect, but closest I have gotten so far... can we improve?
-
-# Predicting Preventative Action: Avoiding Travel and People
-
-```{r echo=TRUE, results = 'hide'}
-set.seed(84735)
-cov_mod6 <- stan_glm(Time1_preventive_action_taken_scale_avoid_travel_people ~
-Time1_Age + Time1_Gender + Time1_Marital_status +  Time1_five_factor_mindfulness_questionnaire_total + Time1_Religious_Affiliation + Time1_Age*Time1_Marital_status,
-                     data = covid,
-                     family = poisson(),
-                     chains = 4,
-                     iter = 5000*2)
-                       
-pp_check(cov_mod6, nreps = 50)
-```
-
-This is the best model I can get so far... poisson works best 
-
-
-# Predicting PPE Use
-
-```{r echo=TRUE, results = 'hide'}
-set.seed(84735)
-ppe_6 <- stan_glm(Time1_preventive_action_taken_scale_PPEuse ~ Time1_Age +
-Time1_intolerance_of_uncertainty_total + Time1_five_factor_mindfulness_questionnaire_total +  Time1_intolerance_of_uncertainty_total:Time1_five_factor_mindfulness_questionnaire_total,
-                     data = covid,
-                     family = gaussian(),
-                     chains = 4,
-                     iter = 5000*2)
-                       
-                       
-pp_check(ppe_6, nreps = 50)
-```
-
-This is the best model I have gotten, but still having trouble fitting the bimodaality.
-
-
-
-
-
-# Elaine's model; predicting quality of life
-```{r echo=TRUE, results = 'hide'}
-#Model b: Elaine's initial model
-set.seed(84735)
-model_b <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total,
-                             data = time_1,
-                             family = gaussian,
-                             chains = 4,
-                             iter = 5000*2)
-
-set.seed(84735)
-pp_check(model_b, nreps = 50)
-model_summary <- summary(model_b)
-head(as.data.frame(model_summary), -2)
-
-#Model b2: add `Illnesses` to Elaine's model
-set.seed(84735)
-mod_b2 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education +  Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total,
-                             data = time_1,
-                             family = gaussian,
-                             chains = 4,
-                             iter = 5000*2)
-set.seed(84735)
-pp_check(mod_b2, nreps = 50)
-model_summary2 <- summary(mod_b2)
-head(as.data.frame(model_summary2), -2)
-
-
-#pois_mod2: Natalia's from above, but with data from time_1 instead of covid (more data points):
-set.seed(84735)
-pois_mod2 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Illnesses + General_Health_Questionnaire_Negative_Total + FFMQtotal + Illnesses*General_Health_Questionnaire_Negative_Total + General_Health_Questionnaire_Negative_Total*FFMQtotal + FFMQtotal*Illnesses, 
-                             data = time_1,
-                             family = poisson(),
-                             chains = 4,
-                             iter = 5000*2)
-set.seed(84735)
-pp_check(pois_mod2, nreps = 50)
-model_summary <- summary(pois_mod2)
-head(as.data.frame(model_summary), -2)
-
-
-#adding `Illnesses` and interaction terms to Elaine's Model b
-#THIS IS THE BEST SO FAR!
-set.seed(84735)
-mod_c <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total + Patient_Health_Questionnaire_Total*Illnesses + Illnesses*General_Health_Questionnaire_Negative_Total,
-                             data = time_1,
-                             family = gaussian,
-                             chains = 4,
-                             iter = 5000*2)
-set.seed(84735)
-pp_check(mod_c, nreps = 50)
-
-
-#Elaine's Model b2 (adding Illnesses) as poisson
-set.seed(84735)
-mod_d <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + Illnesses +  General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total,
-                             data = time_1,
-                             family = poisson(),
-                             chains = 4,
-                             iter = 5000*2)
-set.seed(84735)
-pp_check(mod_d, nreps = 50)
-```
-
-```{r}
-loo_elaine <- loo(model_b)
-loo_elaine2 <- loo(mod_b2)
-#by visual comparison of these 2 models: mod_2b is better, so only use loo_elaine2
-
-loo_n1 <- loo(pois_mod2)
-loo_n2 <- loo(mod_c)
-loo_n3 <- loo(mod_d)
-
-loo_compare(loo_n1, loo_n2, loo_n3, loo_elaine2)
-
-#Model c seems to be best 
-pp_check(mod_c, nreps = 50)
 ```
 
 ```{r echo=TRUE, results = 'hide'}
-#test whether we need all the interaction terms in model c?
-
-#mod c without any interaction terms
-set.seed(84735)
-mod_c2 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total,
-                             data = time_1,
-                             family = gaussian,
-                             chains = 4,
-                             iter = 5000*2)
-set.seed(84735)
-pp_check(mod_c2, nreps = 50)
-
-
-#mod c with only first int term
-set.seed(84735)
-mod_c3 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total,
-                             data = time_1,
-                             family = gaussian,
-                             chains = 4,
-                             iter = 5000*2)
-set.seed(84735)
-pp_check(mod_c3, nreps = 50)
-
-
-#mod c with first 2 interaction terms
-set.seed(84735)
-mod_c4 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total + Patient_Health_Questionnaire_Total*Illnesses,
-                             data = time_1,
-                             family = gaussian,
-                             chains = 4,
-                             iter = 5000*2)
-set.seed(84735)
-pp_check(mod_c4, nreps = 50)
-
-
 #mod c: add FFMQ score
 set.seed(84735)
 mod_c5 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total + Patient_Health_Questionnaire_Total*Illnesses + Illnesses*General_Health_Questionnaire_Negative_Total,
@@ -350,15 +122,62 @@ mod_c6 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education +
 set.seed(84735)
 pp_check(mod_c6, nreps = 50)
 
+mod_none <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_none, nreps = 50)
 
-#compare models
-loo_int <- loo(mod_c)
-loo_no <- loo(mod_c2)
-loo_one <- loo(mod_c3)
-loo_two <- loo(mod_c4)
-loo_more <- loo(mod_c5)
-loo_moreint <- loo(mod_c6)
-loo_compare(loo_int, loo_no, loo_one, loo_two, loo_more, loo_moreint)
+set.seed(84735)
+mod_c7 <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total + Patient_Health_Questionnaire_Total*Illnesses + Illnesses*General_Health_Questionnaire_Negative_Total +  Occupation,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_c7, nreps = 50)
 
-#model c5 is the best!! go with that one for now
+loo_1 <- loo(mod_c6)
+loo_2 <- loo(mod_none)
+loo_3 <- loo(mod_c5)
+loo_compare(loo_1, loo_2, loo_3)
+
+#model c5 is the best!! go with that one for now (but c6 is almost the same)
 ```
+
+
+#General Health
+
+```{r}
+set.seed(84735)
+mod_GHQ2 <- stan_glm(General_Health_Questionnaire_Negative_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + Perceived_Vulnerability_to_Disease_Total + Quality_of_Life_Total,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_GHQ2, nreps = 50)
+model_summary <- summary(mod_c5)
+head(as.data.frame(model_summary), -2)
+loo_GHQ2 <- loo(mod_GHQ2)
+```
+
+```{r}
+time_1_clean <- read_csv("timeone_clean.csv")
+
+set.seed(84735)
+mod_GHQ3 <- stan_glm(General_Health_Questionnaire_Negative_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + Perceived_Vulnerability_to_Disease_Total + Quality_of_Life_Total + Occupation,
+                             data = time_1_clean,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_GHQ3, nreps = 50)
+model_summary <- summary(mod_c5)
+head(as.data.frame(model_summary), -2)
+loo_GHQ2 <- loo(mod_GHQ2)
+```
+
+
