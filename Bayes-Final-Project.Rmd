@@ -1,0 +1,212 @@
+---
+title: "Bayes Final Project"
+author: "Hannah Snell"
+date: "11/30/2020"
+output: html_document
+---
+# Data Setup 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(bayesrules)
+library(rstan)
+library(readr)
+library(rstanarm)
+library(bayesplot)
+```
+
+```{r}
+covid <- read_csv("time1Time2Data.csv")
+time_1 <- read_csv("Sheet 1-Table 1-1.csv")
+```
+
+
+# Variable EDA and Selection  
+
+## 12/3/2020 Game Plan
+
+Outcome: _Overall Quality of Life Score_
+
+### LIST OF VARIABLES IN TIME 1 DATA: 
+(Mark if they need any kind of cleaning)
+
+
+
+Dianne's list:
+Gender
+Age (I think theres 1 N/A to clean)
+Occupation (needs lost of cleaning)
+Employment status
+Marital status
+Education
+Race
+Income (clean NAs)
+Illnesses and meds yes/no
+isolation yes/no
+perceived susceptibility
+Quality of life total
+Patient Health questionnaire total
+
+
+
+Natalia:
+age 
+gender (binary)
+illnesses (binary)
+education (scale)
+percieved vulnerability to disease
+percieved vulnerability to COVID
+impact of events scale total
+intolerance of uncertainty total
+preventative action taken scale PPE use
+five factor mindfulness questionairre total
+general health questionairre total
+isolation (binary)
+
+Elaine: 
+Age
+gender 
+Employment status
+Education 
+Accomodation 
+Self-isolation (yes/no)
+General health questionnaire 
+Prevention action taken scale PPE use 
+Quality of life 
+Patient health quationnaire 
+Intolerance of uncertainty 
+Perceived susceptibility to COVID 19 
+Perceived susceptibility to disease 
+
+
+
+
+
+
+
+
+
+
+Hannah's List - Predictor Vars
+- Age (no cleaning needed)
+- Gender (no cleaning needed) 
+- Occupation (RELEVEL)
+- Employment Status Before/After COVID
+- Marital Status
+- Education
+- Race
+- Religion (Reshape)
+- State (Relevel)
+- Isolation
+- Perceived Susceptibility to COVID
+- FFMQ Total Vars 
+
+# Predicting Quality of Life 
+
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+pois_mod2 <- stan_glm(Time1_quality_of_life_Total ~ Time1_Illnesses + Time1_general_health_quetionnaire_total + Time1_five_factor_mindfulness_questionnaire_total + Time1_Illnesses*Time1_general_health_quetionnaire_total + Time1_general_health_quetionnaire_total*Time1_five_factor_mindfulness_questionnaire_total + Time1_five_factor_mindfulness_questionnaire_total*Time1_Illnesses, 
+                             data = covid,
+                             family = poisson(),
+                             chains = 4,
+                             iter = 5000*2)
+
+pp_check(pois_mod2, nreps = 50)
+
+# Trace plots of parallel chains
+mcmc_trace(pois_mod2, size = 0.1)
+#look fine
+
+# Density plots of parallel chains
+mcmc_dens_overlay(pois_mod2)
+#looks fine, chains have stabilized
+
+model_summary <- summary(pois_mod2)
+head(as.data.frame(model_summary), -2)
+
+
+predictions <-posterior_predict(pois_mod2,
+  newdata = covid)
+
+ppc_intervals(covid$Time1_quality_of_life_Total,
+yrep = predictions,
+prob = 0.5, prob_outer = 0.95)
+#not sure how to interpret this
+
+set.seed(84735)
+cv_procedure <- prediction_summary_cv(
+data = covid, model = pois_mod2, k = 10)
+
+cv_procedure$cv
+#within 50 not great, but mae_scaled not too bad
+```
+
+Can we get the middle/peak more accurate?
+
+#Predicting Self-Isolation (Logistic Regression)
+
+```{r echo=TRUE, results = 'hide'}
+covid_bin <- covid %>%
+  mutate(Time1_self_isolation_yes_or_no = if_else(Time1_self_isolation_yes_or_no == '1', '0', '1')) %>%
+    mutate(Time1_self_isolation_yes_or_no = as.integer(Time1_self_isolation_yes_or_no))
+
+set.seed(84735)
+log_mod <- stan_glm(Time1_self_isolation_yes_or_no   ~ Time1_patient_health_questionnaire_total +  Time1_impact_of_events_scale_total + Time1_patient_health_questionnaire_total*Time1_impact_of_events_scale_total ,
+                        data = covid_bin,
+                        family = binomial('logit'),
+                        chains = 4,
+                        iter = 5000 * 2)
+
+pp_check(log_mod)
+```
+
+
+# Predicting Perceived Vulnerability to Disease At Time 2
+
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+disease_mod3 <- stan_glm(Time2_perceived_vulnerability_to_disease_total ~ Time2_Illnesses + Time2_Meds + Time2_intolerance_of_uncertainty_total + Time2_impact_of_events_scale_total + Time2_Illnesses*Time2_Meds + Time2_intolerance_of_uncertainty_total*Time2_impact_of_events_scale_total,
+                        data = covid,
+                        family = gaussian(),
+                        chains = 4,
+                        iter = 5000 * 2)
+
+pp_check(disease_mod3, nreps = 50)
+```
+
+This is not perfect, but closest I have gotten so far... can we improve?
+
+# Predicting Preventative Action: Avoiding Travel and People
+
+```{r echo=TRUE, results = 'hide'}
+set.seed(84735)
+cov_mod6 <- stan_glm(Time1_preventive_action_taken_scale_avoid_travel_people ~
+Time1_Age + Time1_Gender + Time1_Marital_status +  Time1_five_factor_mindfulness_questionnaire_total + Time1_Religious_Affiliation + Time1_Age*Time1_Marital_status,
+                     data = covid,
+                     family = poisson(),
+                     chains = 4,
+                     iter = 5000*2)
+                       
+pp_check(cov_mod6, nreps = 50)
+```
+
+This is the best model I can get so far... poisson works best 
+
+
+# Predicting PPE Use
+
+```{r}
+set.seed(84735)
+ppe_6 <- stan_glm(Time1_preventive_action_taken_scale_PPEuse ~ Time1_Age +
+Time1_intolerance_of_uncertainty_total + Time1_five_factor_mindfulness_questionnaire_total +  Time1_intolerance_of_uncertainty_total:Time1_five_factor_mindfulness_questionnaire_total,
+                     data = covid,
+                     family = gaussian(),
+                     chains = 4,
+                     iter = 5000*2)
+                       
+                       
+pp_check(ppe_6, nreps = 50)
+```
+
+This is the best model I have gotten, but still having trouble fitting the bimodaality.
