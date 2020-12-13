@@ -31,6 +31,17 @@ library(bayesplot)
 ```{r}
 covid <- read_csv("time1Time2Data.csv")
 time_1 <- read_csv("Sheet 1-Table 1-1.csv")
+time_1 <- time_1 %>%
+  filter(is.na(General_Health_Questionnaire_Negative_Total)==FALSE) %>%
+  filter(is.na(Age)==FALSE) %>%
+  filter(is.na(Gender)==FALSE) %>%
+  filter(is.na(Education)==FALSE) %>%
+  filter(is.na(Intolerance_of_Uncertainty_Total)==FALSE) %>%
+  filter(is.na(FFMQtotal)==FALSE) %>%
+  filter(is.na(Patient_Health_Questionnaire_Total)==FALSE) %>%
+  filter(is.na(Illnesses)==FALSE) %>%
+  filter(is.na(Perceived_Vulnerability_to_Disease_Total)==FALSE) %>%
+  filter(is.na(Perceived_susceptibility_COVID)==FALSE)
 ```
 
 
@@ -47,28 +58,54 @@ Create model
 
 ```{r echo=TRUE, results = 'hide'}
 set.seed(84735)
-
-mod_QOL <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total + Patient_Health_Questionnaire_Total*Illnesses + Illnesses*General_Health_Questionnaire_Negative_Total,
+mod_QOL_orig <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total + Patient_Health_Questionnaire_Total*Illnesses + Illnesses*General_Health_Questionnaire_Negative_Total,
                              data = time_1,
                              family = gaussian,
                              chains = 4,
                              iter = 5000*2)
 set.seed(84735)
-pp_check(mod_QOL, nreps = 50)
+pp_check(mod_QOL_orig, nreps = 50)
 
 
 # Trace plots of parallel chains
-mcmc_trace(mod_QOL, size = 0.1)
+mcmc_trace(mod_QOL_orig, size = 0.1)
 #look fine
 
 # Density plots of parallel chains
-mcmc_dens_overlay(mod_QOL)
+mcmc_dens_overlay(mod_QOL_orig)
 #looks fine, chains have stabilized
 ```
 
 ```{r}
+set.seed(84735)
+cv <-prediction_summary_cv(
+data = time_1, model = mod_QOL, k = 10)
+
+cv$cv
+
+# mae 3.187955
+# mae scaled 0.9042877 
+# 50% 0.5427273 
+# 90% 0.9416667
+
 model_summary <- summary(mod_QOL)
 head(as.data.frame(model_summary), -2)
+```
+
+
+```{r}
+#THIS IS OUR FINAL MODEL! ((I Think at least...))
+set.seed(84735)
+mod_QOL_final <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Employment_status_After_COVID + Marital_status + Annual_income + Isolation_yesorno,
+                             data = time_1,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
+pp_check(mod_QOL_final, nreps = 50)
+
+model_summary_final <- summary(mod_QOL_final)
+head(as.data.frame(model_summary_final), -2)
 ```
 
 ## One for predicitng PPE use
