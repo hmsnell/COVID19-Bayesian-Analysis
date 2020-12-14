@@ -42,7 +42,22 @@ time_1 <- time_1 %>%
   filter(is.na(Illnesses)==FALSE) %>%
   filter(is.na(Perceived_Vulnerability_to_Disease_Total)==FALSE) %>%
   filter(is.na(Perceived_susceptibility_COVID)==FALSE) %>%
-  filter(is.na(Annual_income)==FALSE) 
+  filter(is.na(Annual_income)==FALSE) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID %in% c(4, 5, 6, 7), "unemployed")) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID %in% c(1,2), "parttime")) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == 3, "fulltime")) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "unemployed", 0)) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "parttime", 1)) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "fulltime", 2)) %>%
+  mutate(Annual_income = log(Annual_income)) %>%
+  mutate(Marital_status = replace(Marital_status, Marital_status %in% c(1, 5, 6), 0)) %>%
+  mutate(Marital_status = replace(Marital_status, Marital_status %in% c(2, 3, 4), 1)) %>%
+  mutate(Illnesses = replace(Illnesses, Illnesses == 1, 0)) %>%
+  mutate(Illnesses = replace(Illnesses, Illnesses == 2, 1)) %>%
+  mutate(Gender = replace(Gender, Gender == 1, 0)) %>%
+  mutate(Gender = replace(Gender, Gender == 2, 1)) %>%
+  mutate(Isolation_yesorno = replace(Isolation_yesorno, Isolation_yesorno == 1, 0)) %>%
+  mutate(Isolation_yesorno = replace(Isolation_yesorno, Isolation_yesorno == 2, 1))
 ```
 
 
@@ -97,11 +112,12 @@ head(as.data.frame(model_summary), -2)
 ```{r}
 #THIS IS OUR FINAL MODEL! ((I Think at least...))
 set.seed(84735)
-mod_QOL_final <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Employment_status_After_COVID + Marital_status + Annual_income + Isolation_yesorno,
+mod_QOL_final <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + FFMQtotal + Patient_Health_Questionnaire_Total + as.factor(Illnesses) + General_Health_Questionnaire_Negative_Total + as.factor(Employment_status_After_COVID) + as.factor(Marital_status) + Annual_income + Isolation_yesorno,
                              data = time_1,
                              family = gaussian,
                              chains = 4,
                              iter = 5000*2)
+
 set.seed(84735)
 pp_check(mod_QOL_final, nreps = 50)
 
