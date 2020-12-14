@@ -79,7 +79,7 @@ mcmc_dens_overlay(mod_QOL_orig)
 ```{r}
 set.seed(84735)
 cv <-prediction_summary_cv(
-data = time_1, model = mod_QOL, k = 10)
+data = time_1, model = mod_QOL_orig, k = 10)
 
 cv$cv
 
@@ -88,7 +88,7 @@ cv$cv
 # 50% 0.5427273 
 # 90% 0.9416667
 
-model_summary <- summary(mod_QOL)
+model_summary <- summary(mod_QOL_orig)
 head(as.data.frame(model_summary), -2)
 ```
 
