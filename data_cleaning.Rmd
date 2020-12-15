@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(stringr)
+library(mice)
 
 timeone <- read_csv("Sheet 1-Table 1-1.csv")
 ```
@@ -97,7 +98,6 @@ timeone_clean <- timeone %>%
 ```
 
 For the occupation variable, I am using the U.S. Bureau of Labor Statistics SOC Codes for Labor Categories: 
-
 11-0000  Management Occupations
 13-0000  Business and Financial Operations Occupations
 15-0000  Computer and Mathematical Occupations
@@ -142,8 +142,184 @@ timeone_clean <- timeone_clean %>%
                               Religion_Something_else == 1 ~ "Something Else")) %>% 
   dplyr::select(-(Religion_Protestant:Religion_12_describe), -City, -Country, -Meds_2_describe, -Illnesses_2_describe)
 
-write_csv(timeone_clean, "timeone_clean.csv")
+#write_csv(timeone_clean, "timeone_clean.csv")
 
+```
+
+## From Association Model
+
+```{r}
+#time_1 <- read_csv("Sheet 1-Table 1-1.csv")
+timeone_clean <- timeone_clean %>%
+  # filter(is.na(General_Health_Questionnaire_Negative_Total)==FALSE) %>%
+  # filter(is.na(Age)==FALSE) %>%
+  # filter(is.na(Gender)==FALSE) %>%
+  # filter(is.na(Education)==FALSE) %>%
+  # filter(is.na(Intolerance_of_Uncertainty_Total)==FALSE) %>%
+  # filter(is.na(FFMQtotal)==FALSE) %>%
+  # filter(is.na(Patient_Health_Questionnaire_Total)==FALSE) %>%
+  # filter(is.na(Illnesses)==FALSE) %>%
+  # filter(is.na(Perceived_Vulnerability_to_Disease_Total)==FALSE) %>%
+  # filter(is.na(Perceived_susceptibility_COVID)==FALSE) %>%
+  # filter(is.na(Annual_income)==FALSE) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID %in% c(4, 5, 6, 7), "unemployed")) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID %in% c(1,2), "parttime")) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == 3, "fulltime")) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "unemployed", 0)) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "parttime", 1)) %>%
+  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "fulltime", 2)) %>%
+  mutate(Annual_income = log(Annual_income)) %>%
+  mutate(Marital_status = replace(Marital_status, Marital_status %in% c(1, 5, 6), 0)) %>%
+  mutate(Marital_status = replace(Marital_status, Marital_status %in% c(2, 3, 4), 1)) %>%
+  mutate(Illnesses = replace(Illnesses, Illnesses == 1, 0)) %>%
+  mutate(Illnesses = replace(Illnesses, Illnesses == 2, 1)) %>%
+  mutate(Gender = replace(Gender, Gender == 1, 0)) %>%
+  mutate(Gender = replace(Gender, Gender == 2, 1)) %>%
+  mutate(Isolation_yesorno = replace(Isolation_yesorno, Isolation_yesorno == 1, 0)) %>%
+  mutate(Isolation_yesorno = replace(Isolation_yesorno, Isolation_yesorno == 2, 1))
+```
+
+
+## From LASSO
+
+```{r}
+# 1. Remove variables that we won't use:  
+timeone_clean <- timeone_clean %>% 
+  dplyr::select(-Occupation, -`ID_case#`, -`Date`)
+
+# 2. Find the total NA's per variable: 
+# varsNA <- as.data.frame(sapply(timeone_clean, function(x) sum(is.na(x))))
+# 
+# # 3. Extra data cleaning before multiple imputation: 
+# 
+# # Isolate a small df of all the vars with NA's 
+# colnames(varsNA)[1] <- "NAs"
+# varsNA <- varsNA %>% 
+#   filter(NAs != 0)
+
+# Clean all the vars with NA's (the ones that we won't imputate)
+timeone_clean <- timeone_clean %>% 
+  mutate(`SOC Category` = replace_na(`SOC Category`, "Unknown"), 
+         State = replace_na(State, "Unknown"),  
+         State = recode(State, "USA" = "Unknown"), 
+         State = recode(State, "NONE" = "Unknown"),
+         State = recode(State, "US" = "Unknown"), 
+         State = recode(State, "GE" = "GA"),
+         State = recode(State, "NEW  YORK" = "NY"), 
+         State = recode(State, "34" = "Unknown"),
+         Isolation_number_of_days = replace_na(Isolation_number_of_days, 0),  
+         Religion = replace_na(Religion, "Unknown")) 
+
+colnames(timeone_clean)[3] <- "SOC_Category"
+
+timeone_clean <- timeone_clean %>% 
+  mutate(State_dummy =  recode(State, 
+                           "AL" = 1,
+                           "AK" = 2,
+                           "AZ" = 3,
+                           "AR" = 4,
+                           "CA" = 5,
+                           "CO" = 6,
+                           "CT" = 7,
+                           "DE" = 8,
+                           "DC" = 9,
+                           "FL" = 10,
+                           "GA" = 11,
+                           "HI" = 12,
+                           "ID" = 13,
+                           "IL" = 14,
+                           "IN" = 15, 
+                           "IA" = 16,
+                           "KS" = 17,
+                           "KY" = 18,
+                           "LA" = 19, 
+                           "ME" = 20,
+                           "MD" = 21,
+                           "MA" = 22,
+                           "MI" = 23,
+                           "MN" = 24,
+                           "MS" = 25,
+                           "MO" = 26,
+                           "MT" = 27,
+                           "NE" = 28,
+                           "NV" = 29,
+                           "NH" = 30,
+                           "NJ" = 31,
+                           "NM" = 32,
+                           "NY" = 33,
+                           "NC" = 34,
+                           "ND" = 35,
+                           "OH" = 36,
+                           "OK" = 37,
+                           "OR" = 38,
+                           "PA" = 39,
+                           "RI" = 40,
+                           "SC" = 41,
+                           "SD" = 42,
+                           "TN" = 43,
+                           "TX" = 44,
+                           "UT" = 45,
+                           "VT" = 46,
+                           "VA" = 47,
+                           "WA" = 48,
+                           "WV" = 49,
+                           "WI" = 50,
+                           "WY" = 51,
+                           "Unknown" = 0),
+         Religion_dummy = recode(Religion, 
+                           "Protestant" = 1, 
+                           "Roman Catholic" = 2,  
+                           "Hindu" = 3, 
+                           "Buddhist" = 4, 
+                           "Mormon" = 5,  
+                           "Jewish" = 6, 
+                           "Agnostic" = 7, 
+                           "Atheist" = 8, 
+                           "Nothing in Particular" = 9, 
+                           "Something Else" = 10, 
+                           "Unknown" = 0
+                           ),
+         SOC_Category_dummy = recode(SOC_Category, 
+                              "Management Occupations" = 1, 
+                              "Business and Financial Operations Occupations" = 2, 
+                              "Computer and Mathematical Occupations" = 3, 
+                              "Architecture and Engineering Occupations" = 4, 
+                              "Life, Physical, and Social Science Occupations" = 5, 
+                              "Community and Social Service Occupations" = 6, 
+                              "Legal Occupations" = 7, 
+                              "Educational Instruction and Library Occupations" = 8, 
+                              "Arts, Design, Entertainment, Sports, and Media Occupations" = 9,
+                              "Healthcare Practitioners and Technical Occupations" = 10, 
+                              "Healthcare Support Occupations" = 11, 
+                              "Protective Service Occupations" = 12, 
+                              "Food Preparation and Serving Related Occupations" = 13,  
+                              "Building and Grounds Cleaning and Maintenance Occupations" = 14, 
+                              "Personal Care and Service Occupations" = 15, 
+                              "Sales and Related Occupations" = 16, 
+                              "Office and Administrative Support Occupations" = 17, 
+                              "Farming, Fishing, and Forestry Occupations" = 18, 
+                              "Construction and Extraction Occupations" = 19, 
+                              "Installation, Maintenance, and Repair Occupations" = 20, 
+                              "Production Occupations" = 21, 
+                              "Transportation and Material Moving Occupations" = 22, 
+                              "Military Specific Occupations" = 23,  
+                              "Unknown" = 0))
+# ) %>% 
+  # dplyr::select(-SOC_Category, -State, -Religion)
+```
+
+(Removed categorical vars and used dummy vars for LASSO model)
+
+```{r}
+# 4. Imputate Age, Annual_income, Illnesses, Meds, Isolation_number_times_leave_per_day, Perceived_susceptibility_COVID: 
+imputated_timeone <- mice(timeone_clean, m = 5, meth ='pmm', seed = 84735)
+# summary(imputated_timeone)
+
+p1 <- densityplot(imputated_timeone) # i think this is good? probably needs reviewing
+
+complete_timeone <- complete(imputated_timeone, 1)
+
+write_csv(complete_timeone, "timeone_clean.csv")
 ```
 
 
