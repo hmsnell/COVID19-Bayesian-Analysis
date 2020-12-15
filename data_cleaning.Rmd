@@ -333,7 +333,6 @@ complete_timeone <- complete(imputated_timeone, 1)
 write_csv(complete_timeone, "timeone_clean.csv")
 ```
 
-
 # References 
 
 [standard occupational classifications - u.s. dept labor stats](https://www.bls.gov/soc/2018/major_groups.html)
