@@ -181,3 +181,14 @@ loo_GHQ2 <- loo(mod_GHQ2)
 ```
 
 
+#test patterns of missing data
+```{r}
+library("MissMech")
+timeone_miss <- timeone_clean %>%
+  dplyr::select(Gender, Age, Employment_status_After_COVID, Marital_status, Education, Race, Annual_income, Illnesses, Meds, Accomodation, Isolation_yesorno, Isolation_number_times_leave_per_day, Perceived_susceptibility_COVID, FFMQtotal, Patient_Health_Questionnaire_Total, Quality_of_Life_Total, General_Health_Questionnaire_Negative_Total, Perceived_Vulnerability_to_Disease_Total, Intolerance_of_Uncertainty_Total, Preventive_Action_Taken_Scale_PPEuse_Total, Preventive_Action_Taken_Scale_Avoid_Travel_People_Total, Impact_of_Events_Scale_Total, Number_of_children)
+
+test<-TestMCARNormality(timeone_miss)
+print(test)
+#the results show that our data is not normal but there is no evidence that it's not missing completely at random 
+```
+
