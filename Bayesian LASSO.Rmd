@@ -17,6 +17,7 @@ library(rstan)
 library(modelr)
 library(bayesplot)
 library(bayesrules)
+library(lars)
 
 set.seed(84735)
 
@@ -236,6 +237,7 @@ test <- complete_timeone[-train_ind, ]
 Time for Bayesian LASSO:
 
 ```{r}
+# This chunk takes a bit of time to run
 set.seed(84735)
 
 # convert categorical vars to factors before putting them in the model: 
@@ -284,9 +286,13 @@ coef.lasso <- as.data.frame(cbind(iter = seq(iter),
 colMedians(coef.lasso[-seq(burnin), -1]) # new posterior median estimations
 ```
 
-The following results could be different if we specify our prior distributions instead of giving extreme values: 
+Median $\lambda.square$ value is 0.4023588363 
 
-!! issues here? --> Need to make dummy vars w categorical variables for LASSO!!!
+### Diagnostics: 
+
+(The following results could be different if we specify our prior distributions instead of giving extreme values:) 
+
+Comparing vars dumped in regular LASSO
 ```{r}
 # This needs some work here
 # Compare regular LASSO vs. BLASSO: number of coefficients shrunk to zero 
@@ -296,12 +302,15 @@ fit.glmnet <- glmnet(as.matrix(x_matrix_train), train$Preventive_Action_Taken_Sc
                         lambda = cv.glmnet(as.matrix(x_matrix_train), train$Preventive_Action_Taken_Scale_PPEuse_Total)$lambda.1se)
 coef.glmnet <- coef(fit.glmnet)
 sum(coef.glmnet == 0)
+# 33 vars dumped
 
 # BLASSO
 sum(colMedians(lasso$beta[-seq(burnin), ]) == 0)
+# 30 vars dumped
 ```
 
 ```{r}
+# made a results table based on nonzero slopes. even though there are technically 8, one of them 
 coefficients <- tribble( 
   ~"var name", ~"beta", ~"median coef", ~"median tau2i", 
    "Age", "beta1", -0.0008406, 0.3313,
@@ -325,6 +334,15 @@ summary(lasso, burnin = 5000)
 ```
 
 Cross Validation: 
+
+```{r}
+cvlas <- cv.lars(x_matrix_train, train$Preventive_Action_Taken_Scale_PPEuse_Total, K = 10, type = "lasso")
+frac <- cvlas$index[which.min(cvlas$cv)]
+frac
+las.coef <- predict.lars(lasso, type="coefficients", mode="fraction", s=frac)
+las.coef
+```
+
 
 - do we use LASSO-based CV or Bayesian CV or a combo
 - how can we visualize this
