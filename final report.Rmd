@@ -29,35 +29,35 @@ library(bayesplot)
 ### Select Variables
 
 ```{r}
-covid <- read_csv("time1Time2Data.csv")
-time_1 <- read_csv("Sheet 1-Table 1-1.csv")
-time_1 <- time_1 %>%
-  filter(is.na(General_Health_Questionnaire_Negative_Total)==FALSE) %>%
-  filter(is.na(Age)==FALSE) %>%
-  filter(is.na(Gender)==FALSE) %>%
-  filter(is.na(Education)==FALSE) %>%
-  filter(is.na(Intolerance_of_Uncertainty_Total)==FALSE) %>%
-  filter(is.na(FFMQtotal)==FALSE) %>%
-  filter(is.na(Patient_Health_Questionnaire_Total)==FALSE) %>%
-  filter(is.na(Illnesses)==FALSE) %>%
-  filter(is.na(Perceived_Vulnerability_to_Disease_Total)==FALSE) %>%
-  filter(is.na(Perceived_susceptibility_COVID)==FALSE) %>%
-  filter(is.na(Annual_income)==FALSE) %>%
-  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID %in% c(4, 5, 6, 7), "unemployed")) %>%
-  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID %in% c(1,2), "parttime")) %>%
-  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == 3, "fulltime")) %>%
-  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "unemployed", 0)) %>%
-  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "parttime", 1)) %>%
-  mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "fulltime", 2)) %>%
-  mutate(Annual_income = log(Annual_income)) %>%
-  mutate(Marital_status = replace(Marital_status, Marital_status %in% c(1, 5, 6), 0)) %>%
-  mutate(Marital_status = replace(Marital_status, Marital_status %in% c(2, 3, 4), 1)) %>%
-  mutate(Illnesses = replace(Illnesses, Illnesses == 1, 0)) %>%
-  mutate(Illnesses = replace(Illnesses, Illnesses == 2, 1)) %>%
-  mutate(Gender = replace(Gender, Gender == 1, 0)) %>%
-  mutate(Gender = replace(Gender, Gender == 2, 1)) %>%
-  mutate(Isolation_yesorno = replace(Isolation_yesorno, Isolation_yesorno == 1, 0)) %>%
-  mutate(Isolation_yesorno = replace(Isolation_yesorno, Isolation_yesorno == 2, 1))
+# covid <- read_csv("time1Time2Data.csv")
+# time_1 <- read_csv("Sheet 1-Table 1-1.csv")
+# time_1 <- time_1 %>%
+#   filter(is.na(General_Health_Questionnaire_Negative_Total)==FALSE) %>%
+#   filter(is.na(Age)==FALSE) %>%
+#   filter(is.na(Gender)==FALSE) %>%
+#   filter(is.na(Education)==FALSE) %>%
+#   filter(is.na(Intolerance_of_Uncertainty_Total)==FALSE) %>%
+#   filter(is.na(FFMQtotal)==FALSE) %>%
+#   filter(is.na(Patient_Health_Questionnaire_Total)==FALSE) %>%
+#   filter(is.na(Illnesses)==FALSE) %>%
+#   filter(is.na(Perceived_Vulnerability_to_Disease_Total)==FALSE) %>%
+#   filter(is.na(Perceived_susceptibility_COVID)==FALSE) %>%
+#   filter(is.na(Annual_income)==FALSE) %>%
+#   mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID %in% c(4, 5, 6, 7), "unemployed")) %>%
+#   mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID %in% c(1,2), "parttime")) %>%
+#   mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == 3, "fulltime")) %>%
+#   mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "unemployed", 0)) %>%
+#   mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "parttime", 1)) %>%
+#   mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "fulltime", 2)) %>%
+#   mutate(Annual_income = log(Annual_income)) %>%
+#   mutate(Marital_status = replace(Marital_status, Marital_status %in% c(1, 5, 6), 0)) %>%
+#   mutate(Marital_status = replace(Marital_status, Marital_status %in% c(2, 3, 4), 1)) %>%
+#   mutate(Illnesses = replace(Illnesses, Illnesses == 1, 0)) %>%
+#   mutate(Illnesses = replace(Illnesses, Illnesses == 2, 1)) %>%
+#   mutate(Gender = replace(Gender, Gender == 1, 0)) %>%
+#   mutate(Gender = replace(Gender, Gender == 2, 1)) %>%
+#   mutate(Isolation_yesorno = replace(Isolation_yesorno, Isolation_yesorno == 1, 0)) %>%
+#   mutate(Isolation_yesorno = replace(Isolation_yesorno, Isolation_yesorno == 2, 1))
 ```
 
 
@@ -72,44 +72,9 @@ examine distribution to determine type of regression (poisson, gaussian, binom, 
 Create model
 ## One for predicting quality of life
 
-```{r echo=TRUE, results = 'hide'}
-set.seed(84735)
-mod_QOL_orig <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + Intolerance_of_Uncertainty_Total + FFMQtotal + Patient_Health_Questionnaire_Total + Illnesses + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Patient_Health_Questionnaire_Total*General_Health_Questionnaire_Negative_Total + Patient_Health_Questionnaire_Total*Illnesses + Illnesses*General_Health_Questionnaire_Negative_Total,
-                             data = time_1,
-                             family = gaussian,
-                             chains = 4,
-                             iter = 5000*2)
-set.seed(84735)
-pp_check(mod_QOL_orig, nreps = 50)
-
-
-# Trace plots of parallel chains
-mcmc_trace(mod_QOL_orig, size = 0.1)
-#look fine
-
-# Density plots of parallel chains
-mcmc_dens_overlay(mod_QOL_orig)
-#looks fine, chains have stabilized
-```
-
 ```{r}
-set.seed(84735)
-cv <-prediction_summary_cv(
-data = time_1, model = mod_QOL_orig, k = 10)
+timeone_clean <- read_csv("timeone_clean.csv")
 
-cv$cv
-
-# mae 3.187955
-# mae scaled 0.9042877 
-# 50% 0.5427273 
-# 90% 0.9416667
-
-model_summary <- summary(mod_QOL_orig)
-head(as.data.frame(model_summary), -2)
-```
-
-
-```{r}
 timeone_rename <- timeone_clean %>%
   rename(FFMQ = FFMQtotal) %>%
   rename(PHQ = Patient_Health_Questionnaire_Total) %>%
@@ -120,23 +85,27 @@ timeone_rename <- timeone_clean %>%
   rename(QOL = Quality_of_Life_Total) %>%
   rename(income = Annual_income) %>%
   rename(Employment = Employment_status_After_COVID)
+
 #THIS IS OUR FINAL MODEL! ((I Think at least...))
 #for display purpose 
 set.seed(84735)
-mod_QOL_final_rename <- stan_glm(QOL ~ Age + as.factor(Gender) + Education + as.factor(Marital_status) + income + as.factor(Employment) + Isolation_yesorno + FFMQ + PHQ + as.factor(Illnesses) + GHQ ,
+mod_QOL_final_rename <- stan_glm(QOL ~ Age + as.factor(Gender) + Education + as.factor(Marital_status) + income + as.factor(Employment) + Isolation_yesorno + FFMQ + as.factor(Illnesses),
                              data = timeone_rename,
-                             family = gaussian,
-                             chains = 4,
-                             iter = 5000*2)
-set.seed(84735)
-mod_QOL_final <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + as.factor(Marital_status) + Annual_income + as.factor(Employment_status_After_COVID) + Isolation_yesorno + FFMQtotal + Patient_Health_Questionnaire_Total + as.factor(Illnesses) + General_Health_Questionnaire_Negative_Total ,
-                             data = timeone_clean,
                              family = gaussian,
                              chains = 4,
                              iter = 5000*2)
 
 set.seed(84735)
+mod_QOL_final <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + as.factor(Marital_status) + Annual_income + as.factor(Employment_status_After_COVID) + Isolation_yesorno + FFMQtotal + as.factor(Illnesses),
+                             data = timeone_clean,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
+set.seed(84735)
 pp_check(mod_QOL_final, nreps = 50)
+
+set.seed(84735)
+pp_check(mod_QOL_final_rename, nreps = 50)
 mcmc_trace(mod_QOL_final_rename, size = 0.1)
 
 mcmc_dens_overlay(mod_QOL_final_rename)
@@ -145,6 +114,8 @@ mcmc_dens_overlay(mod_QOL_final_rename)
 ```{r}
 model_summary_final <- summary(mod_QOL_final_rename)
 mod_sum <- head(as.data.frame(model_summary_final), -2)
+
+mod_sum
 
 mod_table <- setNames(cbind(rownames(mod_sum), mod_sum, row.names=NULL), c("Variables", "mean", "mcse", "sd","10%", "50%", "90%", "n_eff","Rhat"))
 
@@ -156,6 +127,8 @@ write.table(mod_table, file = "mod_table.txt", sep = ",", quote = FALSE, row.nam
 set.seed(84735)
 cv <- prediction_summary_cv(
 data = timeone_clean, model = mod_QOL_final, k = 10)
+
+cv$cv
 
 interval <- posterior_interval(mod_QOL_final_rename)
 #output table with 90% credible interval 
