@@ -89,7 +89,7 @@ timeone_rename <- timeone_clean %>%
 #THIS IS OUR FINAL MODEL! ((I Think at least...))
 #for display purpose 
 set.seed(84735)
-mod_QOL_final_rename <- stan_glm(QOL ~ Age + as.factor(Gender) + Education + as.factor(Marital_status) + income + as.factor(Employment) + Isolation_yesorno + FFMQ + as.factor(Illnesses),
+mod_QOL_final_rename <- stan_glm(QOL ~ Age + as.factor(Gender) + Education + as.factor(Illnesses) + as.factor(Marital_status) + income + as.factor(Employment) + Isolation_yesorno + FFMQ,
                              data = timeone_rename,
                              family = gaussian,
                              chains = 4,
@@ -120,9 +120,9 @@ mod_sum
 mod_table <- setNames(cbind(rownames(mod_sum), mod_sum, row.names=NULL), c("Variables", "mean", "mcse", "sd","10%", "50%", "90%", "n_eff","Rhat"))
 
 #regression output table 
-mod_table <- mod_table %>%
-  mutate_each(funs(round(., 2)), -Variables) 
-write.table(mod_table, file = "mod_table.txt", sep = ",", quote = FALSE, row.names = F)
+#mod_table <- mod_table %>%
+#  mutate_each(funs(round(., 2)), -Variables) 
+#write.table(mod_table, file = "mod_table.txt", sep = ",", quote = FALSE, row.names = F)
 
 set.seed(84735)
 cv <- prediction_summary_cv(
@@ -132,11 +132,11 @@ cv$cv
 
 interval <- posterior_interval(mod_QOL_final_rename)
 #output table with 90% credible interval 
-mod_95_table <- mod_table %>%
+mod_90_table <- mod_table %>%
   dplyr::select(-"10%",-"50%",-"90%") %>%
   cbind(data=interval) %>%
   mutate_each(funs(round(., 2)), -Variables) 
-write.table(mod_95_table, file = "mod_95_table.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(mod_90_table, file = "mod_90_table.txt", sep = ",", quote = FALSE, row.names = F)
 ```
 
 ```{r}
