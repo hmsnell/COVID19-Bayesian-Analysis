@@ -110,7 +110,24 @@ head(as.data.frame(model_summary), -2)
 
 
 ```{r}
+timeone_rename <- timeone_clean %>%
+  rename(FFMQ = FFMQtotal) %>%
+  rename(PHQ = Patient_Health_Questionnaire_Total) %>%
+  rename(GHQ = General_Health_Questionnaire_Negative_Total) %>%
+  rename(PVD = Perceived_Vulnerability_to_Disease_Total) %>%
+  rename(IUS = Intolerance_of_Uncertainty_Total) %>%
+  rename(PPEuse = Preventive_Action_Taken_Scale_PPEuse_Total) %>%
+  rename(QOL = Quality_of_Life_Total) %>%
+  rename(income = Annual_income) %>%
+  rename(Employment = Employment_status_After_COVID)
 #THIS IS OUR FINAL MODEL! ((I Think at least...))
+#for display purpose 
+set.seed(84735)
+mod_QOL_final_rename <- stan_glm(QOL ~ Age + as.factor(Gender) + Education + as.factor(Marital_status) + income + as.factor(Employment) + Isolation_yesorno + FFMQ + PHQ + as.factor(Illnesses) + GHQ ,
+                             data = timeone_rename,
+                             family = gaussian,
+                             chains = 4,
+                             iter = 5000*2)
 set.seed(84735)
 mod_QOL_final <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + as.factor(Marital_status) + Annual_income + as.factor(Employment_status_After_COVID) + Isolation_yesorno + FFMQtotal + Patient_Health_Questionnaire_Total + as.factor(Illnesses) + General_Health_Questionnaire_Negative_Total ,
                              data = timeone_clean,
@@ -120,8 +137,13 @@ mod_QOL_final <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Educ
 
 set.seed(84735)
 pp_check(mod_QOL_final, nreps = 50)
+mcmc_trace(mod_QOL_final_rename, size = 0.1)
 
-model_summary_final <- summary(mod_QOL_final)
+mcmc_dens_overlay(mod_QOL_final_rename)
+```
+
+```{r}
+model_summary_final <- summary(mod_QOL_final_rename)
 mod_sum <- head(as.data.frame(model_summary_final), -2)
 
 mod_table <- setNames(cbind(rownames(mod_sum), mod_sum, row.names=NULL), c("Variables", "mean", "mcse", "sd","10%", "50%", "90%", "n_eff","Rhat"))
@@ -130,6 +152,18 @@ mod_table <- setNames(cbind(rownames(mod_sum), mod_sum, row.names=NULL), c("Vari
 mod_table <- mod_table %>%
   mutate_each(funs(round(., 2)), -Variables) 
 write.table(mod_table, file = "mod_table.txt", sep = ",", quote = FALSE, row.names = F)
+
+set.seed(84735)
+cv <- prediction_summary_cv(
+data = timeone_clean, model = mod_QOL_final, k = 10)
+
+interval <- posterior_interval(mod_QOL_final_rename)
+#output table with 90% credible interval 
+mod_95_table <- mod_table %>%
+  dplyr::select(-"10%",-"50%",-"90%") %>%
+  cbind(data=interval) %>%
+  mutate_each(funs(round(., 2)), -Variables) 
+write.table(mod_95_table, file = "mod_95_table.txt", sep = ",", quote = FALSE, row.names = F)
 ```
 
 ```{r}
