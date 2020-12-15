@@ -319,7 +319,6 @@ time1_miss <- time_1 %>%
   dplyr::select(Gender, Age, Employment_status_Befor_COVID, Employment_status_After_COVID, Marital_status, Education, Race, Annual_income, Illnesses, Meds, Accomodation, Isolation_yesorno, Isolation_number_times_leave_per_day, Perceived_susceptibility_COVID, FFMQtotal, Patient_Health_Questionnaire_Total, Quality_of_Life_Total, General_Health_Questionnaire_Negative_Total, Perceived_Vulnerability_to_Disease_Total, Intolerance_of_Uncertainty_Total, Preventive_Action_Taken_Scale_PPEuse_Total, Preventive_Action_Taken_Scale_Avoid_Travel_People_Total, Impact_of_Events_Scale_Total, Number_of_children)
 test <- TestMCARNormality(time1_miss)
 print(test)
-summary(time_1)
 ```
 
 ```{r}
