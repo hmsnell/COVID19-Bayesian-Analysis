@@ -112,8 +112,8 @@ head(as.data.frame(model_summary), -2)
 ```{r}
 #THIS IS OUR FINAL MODEL! ((I Think at least...))
 set.seed(84735)
-mod_QOL_final <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + FFMQtotal + Patient_Health_Questionnaire_Total + as.factor(Illnesses) + General_Health_Questionnaire_Negative_Total + as.factor(Employment_status_After_COVID) + as.factor(Marital_status) + Annual_income + Isolation_yesorno,
-                             data = time_1,
+mod_QOL_final <- stan_glm(Quality_of_Life_Total ~ Age + as.factor(Gender) + Education + as.factor(Marital_status) + Annual_income + as.factor(Employment_status_After_COVID) + Isolation_yesorno + FFMQtotal + Patient_Health_Questionnaire_Total + as.factor(Illnesses) + General_Health_Questionnaire_Negative_Total ,
+                             data = timeone_clean,
                              family = gaussian,
                              chains = 4,
                              iter = 5000*2)
@@ -122,7 +122,37 @@ set.seed(84735)
 pp_check(mod_QOL_final, nreps = 50)
 
 model_summary_final <- summary(mod_QOL_final)
-head(as.data.frame(model_summary_final), -2)
+mod_sum <- head(as.data.frame(model_summary_final), -2)
+
+mod_table <- setNames(cbind(rownames(mod_sum), mod_sum, row.names=NULL), c("Variables", "mean", "mcse", "sd","10%", "50%", "90%", "n_eff","Rhat"))
+
+#regression output table 
+mod_table <- mod_table %>%
+  mutate_each(funs(round(., 2)), -Variables) 
+write.table(mod_table, file = "mod_table.txt", sep = ",", quote = FALSE, row.names = F)
+```
+
+```{r}
+#M, SD, correlation table 
+library(apaTables)
+library(readr)
+timeone_clean <- read_csv("timeone_clean.csv")
+timeone_cor <- timeone_clean %>%
+  dplyr::select(Age,Annual_income, FFMQtotal, Patient_Health_Questionnaire_Total, General_Health_Questionnaire_Negative_Total, Perceived_Vulnerability_to_Disease_Total, Intolerance_of_Uncertainty_Total, Preventive_Action_Taken_Scale_PPEuse_Total, Quality_of_Life_Total) %>%
+  rename(FFMQ = FFMQtotal) %>%
+  rename(PHQ = Patient_Health_Questionnaire_Total) %>%
+  rename(GHQ = General_Health_Questionnaire_Negative_Total) %>%
+  rename(PVD = Perceived_Vulnerability_to_Disease_Total) %>%
+  rename(IUS = Intolerance_of_Uncertainty_Total) %>%
+  rename(PPEuse = Preventive_Action_Taken_Scale_PPEuse_Total) %>%
+  rename(QOL = Quality_of_Life_Total) %>%
+  rename(income = Annual_income)
+apa.cor.table(timeone_cor, filename = "correlation.doc", table.number = 1,
+              show.conf.interval = F, landscape = TRUE)
+
+#this plot is a bit ugly
+timeone_cor %>%
+  GGally::ggpairs()
 ```
 
 ## One for predicitng PPE use

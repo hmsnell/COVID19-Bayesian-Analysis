@@ -1,0 +1,15 @@
+Variables,mean,mcse,sd,10%,50%,90%,n_eff,Rhat
+(Intercept),10.19,0.02,4.39,4.56,10.2,15.77,35804,1
+Age,-0.01,0,0.02,-0.04,-0.01,0.02,33223,1
+as.factor(Gender)1,0.79,0,0.52,0.13,0.8,1.46,33168,1
+Education,0.62,0,0.26,0.29,0.62,0.96,31899,1
+as.factor(Marital_status)1,1.2,0,0.62,0.4,1.2,2,30277,1
+Annual_income,0.86,0,0.32,0.45,0.86,1.27,34559,1
+as.factor(Employment_status_After_COVID)1,2.31,0.01,0.86,1.21,2.31,3.42,20732,1
+as.factor(Employment_status_After_COVID)2,2.02,0.01,0.91,0.86,2.01,3.19,20489,1
+Isolation_yesorno,-0.82,0,0.54,-1.52,-0.82,-0.13,34616,1
+FFMQtotal,0.16,0,0.03,0.13,0.17,0.2,30217,1
+Patient_Health_Questionnaire_Total,-0.05,0,0.04,-0.1,-0.05,0,28916,1
+as.factor(Illnesses)1,-2.58,0,0.74,-3.52,-2.58,-1.62,33701,1
+General_Health_Questionnaire_Negative_Total,-0.09,0,0.06,-0.17,-0.09,-0.01,31490,1
+sigma,5.19,0,0.18,4.97,5.18,5.42,31296,1
