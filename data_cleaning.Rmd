@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(stringr)
 library(mice)
+library("MissMech") # install from local file https://cran.r-project.org/src/contrib/Archive/MissMech/ 
 
 timeone <- read_csv("Sheet 1-Table 1-1.csv")
 ```
@@ -168,6 +169,7 @@ timeone_clean <- timeone_clean %>%
   mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "unemployed", 0)) %>%
   mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "parttime", 1)) %>%
   mutate(Employment_status_After_COVID = replace(Employment_status_After_COVID, Employment_status_After_COVID == "fulltime", 2)) %>%
+  mutate(Employment_status_After_COVID = as.numeric(Employment_status_After_COVID)) %>% 
   mutate(Annual_income = log(Annual_income)) %>%
   mutate(Marital_status = replace(Marital_status, Marital_status %in% c(1, 5, 6), 0)) %>%
   mutate(Marital_status = replace(Marital_status, Marital_status %in% c(2, 3, 4), 1)) %>%
@@ -303,12 +305,18 @@ timeone_clean <- timeone_clean %>%
                               "Production Occupations" = 21, 
                               "Transportation and Material Moving Occupations" = 22, 
                               "Military Specific Occupations" = 23,  
-                              "Unknown" = 0))
-# ) %>% 
-  # dplyr::select(-SOC_Category, -State, -Religion)
+                              "Unknown" = 0)
+ ) %>% 
+   dplyr::select(-SOC_Category, -State, -Religion)
 ```
 
 (Removed categorical vars and used dummy vars for LASSO model)
+
+```{r}
+# Little's MCAR Test to check for complete randomness in missing values before imputation
+test <- TestMCARNormality(timeone_clean)
+print(test)
+```
 
 ```{r}
 # 4. Imputate Age, Annual_income, Illnesses, Meds, Isolation_number_times_leave_per_day, Perceived_susceptibility_COVID: 
