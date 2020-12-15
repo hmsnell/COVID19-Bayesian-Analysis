@@ -144,16 +144,9 @@ write.table(mod_90_table, file = "mod_90_table.txt", sep = ",", quote = FALSE, r
 library(apaTables)
 library(readr)
 timeone_clean <- read_csv("timeone_clean.csv")
-timeone_cor <- timeone_clean %>%
-  dplyr::select(Age,Annual_income, FFMQtotal, Patient_Health_Questionnaire_Total, General_Health_Questionnaire_Negative_Total, Perceived_Vulnerability_to_Disease_Total, Intolerance_of_Uncertainty_Total, Preventive_Action_Taken_Scale_PPEuse_Total, Quality_of_Life_Total) %>%
-  rename(FFMQ = FFMQtotal) %>%
-  rename(PHQ = Patient_Health_Questionnaire_Total) %>%
-  rename(GHQ = General_Health_Questionnaire_Negative_Total) %>%
-  rename(PVD = Perceived_Vulnerability_to_Disease_Total) %>%
-  rename(IUS = Intolerance_of_Uncertainty_Total) %>%
-  rename(PPEuse = Preventive_Action_Taken_Scale_PPEuse_Total) %>%
-  rename(QOL = Quality_of_Life_Total) %>%
-  rename(income = Annual_income)
+timeone_cor <- timeone_rename %>%
+  dplyr::select(Age, income, FFMQ, IUS, PPEuse, QOL)
+
 apa.cor.table(timeone_cor, filename = "correlation.doc", table.number = 1,
               show.conf.interval = F, landscape = TRUE)
 
