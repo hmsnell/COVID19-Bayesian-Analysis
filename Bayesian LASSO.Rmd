@@ -33,31 +33,31 @@ _Using the `monomvm` package for Bayesian Regression and LASSO:_
 ```{r}
 # Example code from Stack Overflow: 
 
-burnin <- 500
-iter <- 1000
-initial.beta <- rep(-500, dim(x2)[2]) # assigning an extreme initial value for all betas
-initial.lambda2 <- 10 # assigning an extreme initial value for lambda (penalty parameter)
-initial.variance <- 500 # assigning an extreme initial value for variance parameter
-
-# starting the Gibbs sampler here
-lasso <- blasso(X = x2, # covariate matrix 
-                y = y,  # response vector
-                T = iter, # number of iterations
-                beta = initial.beta, 
-                lambda2 = initial.lambda2,  
-                s2 = initial.variance)
-
-# collecting draws for some of the parameters for visualization
-coef.lasso <- as.data.frame(cbind(iter = seq(iter), 
-                              beta1 = lasso$beta[, "b.1"], 
-                              beta2 = lasso$beta[, "b.2"], 
-                              variance = lasso$s2, 
-                              lambda.square = lasso$lambda2))
+# burnin <- 500
+# iter <- 1000
+# initial.beta <- rep(-500, dim(x2)[2]) # assigning an extreme initial value for all betas
+# initial.lambda2 <- 10 # assigning an extreme initial value for lambda (penalty parameter)
+# initial.variance <- 500 # assigning an extreme initial value for variance parameter
+# 
+# # starting the Gibbs sampler here
+# lasso <- blasso(X = x2, # covariate matrix 
+#                 y = y,  # response vector
+#                 T = iter, # number of iterations
+#                 beta = initial.beta, 
+#                 lambda2 = initial.lambda2,  
+#                 s2 = initial.variance)
+# 
+# # collecting draws for some of the parameters for visualization
+# coef.lasso <- as.data.frame(cbind(iter = seq(iter), 
+#                               beta1 = lasso$beta[, "b.1"], 
+#                               beta2 = lasso$beta[, "b.2"], 
+#                               variance = lasso$s2, 
+#                               lambda.square = lasso$lambda2))
 ```
 
 
 ```{r}
-colMedians(coef.lasso[-seq(burnin), -1]) # new posterior mean estimations
+# colMedians(coef.lasso[-seq(burnin), -1]) # new posterior mean estimations
 ```
 
 
@@ -67,13 +67,13 @@ The following results could be different if we specify our prior distributions i
 # Compare regular LASSO vs. BLASSO: number of coefficients shrunk to zero 
 
 # Regular LASSO
-fit.glmnet <-  glmnet(as.matrix(x2), y, 
-                        lambda=cv.glmnet(as.matrix(x2), y)$lambda.1se)
-coef.glmnet <- coef(fit.glmnet)
-sum(coef.glmnet == 0)
-
-# BLASSO
-sum(colMedians(lasso$beta[-seq(burnin), ]) == 0)
+# fit.glmnet <-  glmnet(as.matrix(x2), y, 
+#                         lambda=cv.glmnet(as.matrix(x2), y)$lambda.1se)
+# coef.glmnet <- coef(fit.glmnet)
+# sum(coef.glmnet == 0)
+# 
+# # BLASSO
+# sum(colMedians(lasso$beta[-seq(burnin), ]) == 0)
 ```
 
 If we get that all of our betas are shrunken to zero, try tuning hyperparameters (Park & Casella, 2008)
@@ -82,144 +82,134 @@ If we get that all of our betas are shrunken to zero, try tuning hyperparameters
 
 We will have issues running LASSO with NA values present anywhere in our data. We want to keep as many rows as possible since our dataset is small, so we can use multiple imputation to fill in the missing value NAs with the mean of the particular variable. 
 
-```{r}
-# 1. Remove variables that we won't use: 
-timeone_clean <- timeone_clean %>% 
-  dplyr::select(-Occupation, -`ID_case#`, -`Date`)
-
-# 2. Find the total NA's per variable: 
-varsNA <- as.data.frame(sapply(timeone_clean, function(x) sum(is.na(x))))
-
-# 3. Extra data cleaning before multiple imputation: 
-
-# Isolate a small df of all the vars with NA's 
-colnames(varsNA)[1] <- "NAs"
-varsNA <- varsNA %>% 
-  filter(NAs != 0)
-
-# Clean all the vars with NA's (the ones that we won't imputate)
-timeone_clean <- timeone_clean %>% 
-  mutate(`SOC Category` = replace_na(`SOC Category`, "Unknown"), 
-         State = replace_na(State, "Unknown"),  
-         State = recode(State, "USA" = "Unknown"), 
-         State = recode(State, "NONE" = "Unknown"),
-         State = recode(State, "US" = "Unknown"), 
-         State = recode(State, "GE" = "GA"),
-         State = recode(State, "NEW  YORK" = "NY"), 
-         State = recode(State, "34" = "Unknown"),
-         Isolation_number_of_days = replace_na(Isolation_number_of_days, 0),  
-         Religion = replace_na(Religion, "Unknown")) 
-
-colnames(timeone_clean)[3] <- "SOC_Category"
-
-timeone_clean <- timeone_clean %>% 
-  mutate(State_dummy =  recode(State, 
-                           "AL" = 1,
-                           "AK" = 2,
-                           "AZ" = 3,
-                           "AR" = 4,
-                           "CA" = 5,
-                           "CO" = 6,
-                           "CT" = 7,
-                           "DE" = 8,
-                           "DC" = 9,
-                           "FL" = 10,
-                           "GA" = 11,
-                           "HI" = 12,
-                           "ID" = 13,
-                           "IL" = 14,
-                           "IN" = 15, 
-                           "IA" = 16,
-                           "KS" = 17,
-                           "KY" = 18,
-                           "LA" = 19, 
-                           "ME" = 20,
-                           "MD" = 21,
-                           "MA" = 22,
-                           "MI" = 23,
-                           "MN" = 24,
-                           "MS" = 25,
-                           "MO" = 26,
-                           "MT" = 27,
-                           "NE" = 28,
-                           "NV" = 29,
-                           "NH" = 30,
-                           "NJ" = 31,
-                           "NM" = 32,
-                           "NY" = 33,
-                           "NC" = 34,
-                           "ND" = 35,
-                           "OH" = 36,
-                           "OK" = 37,
-                           "OR" = 38,
-                           "PA" = 39,
-                           "RI" = 40,
-                           "SC" = 41,
-                           "SD" = 42,
-                           "TN" = 43,
-                           "TX" = 44,
-                           "UT" = 45,
-                           "VT" = 46,
-                           "VA" = 47,
-                           "WA" = 48,
-                           "WV" = 49,
-                           "WI" = 50,
-                           "WY" = 51,
-                           "Unknown" = 0),
-         Religion_dummy = recode(Religion, 
-                           "Protestant" = 1, 
-                           "Roman Catholic" = 2,  
-                           "Hindu" = 3, 
-                           "Buddhist" = 4, 
-                           "Mormon" = 5,  
-                           "Jewish" = 6, 
-                           "Agnostic" = 7, 
-                           "Atheist" = 8, 
-                           "Nothing in Particular" = 9, 
-                           "Something Else" = 10, 
-                           "Unknown" = 0
-                           ),
-         SOC_Category_dummy = recode(SOC_Category, 
-                              "Management Occupations" = 1, 
-                              "Business and Financial Operations Occupations" = 2, 
-                              "Computer and Mathematical Occupations" = 3, 
-                              "Architecture and Engineering Occupations" = 4, 
-                              "Life, Physical, and Social Science Occupations" = 5, 
-                              "Community and Social Service Occupations" = 6, 
-                              "Legal Occupations" = 7, 
-                              "Educational Instruction and Library Occupations" = 8, 
-                              "Arts, Design, Entertainment, Sports, and Media Occupations" = 9,
-                              "Healthcare Practitioners and Technical Occupations" = 10, 
-                              "Healthcare Support Occupations" = 11, 
-                              "Protective Service Occupations" = 12, 
-                              "Food Preparation and Serving Related Occupations" = 13,  
-                              "Building and Grounds Cleaning and Maintenance Occupations" = 14, 
-                              "Personal Care and Service Occupations" = 15, 
-                              "Sales and Related Occupations" = 16, 
-                              "Office and Administrative Support Occupations" = 17, 
-                              "Farming, Fishing, and Forestry Occupations" = 18, 
-                              "Construction and Extraction Occupations" = 19, 
-                              "Installation, Maintenance, and Repair Occupations" = 20, 
-                              "Production Occupations" = 21, 
-                              "Transportation and Material Moving Occupations" = 22, 
-                              "Military Specific Occupations" = 23,  
-                              "Unknown" = 0)
-) %>% 
-  dplyr::select(-SOC_Category, -State, -Religion)
-
-```
-
+**  Done in `data_cleaning.Rmd` **
 
 ```{r}
-# 4. Imputate Age, Annual_income, Illnesses, Meds, Isolation_number_times_leave_per_day, Perceived_susceptibility_COVID: 
-imputated_timeone <- mice(timeone_clean, m = 5, meth ='pmm', seed = 84735)
-# summary(imputated_timeone)
-
-p1 <- densityplot(imputated_timeone) # i think this is good? probably needs reviewing
-
-complete_timeone <- complete(imputated_timeone, 1)
+ # 1. Remove variables that we won't use: 
+# timeone_clean <- timeone_clean %>% 
+#   dplyr::select(-Occupation, -`ID_case#`, -`Date`)
+# 
+# # 2. Find the total NA's per variable: 
+# varsNA <- as.data.frame(sapply(timeone_clean, function(x) sum(is.na(x))))
+# 
+# # 3. Extra data cleaning before multiple imputation: 
+# 
+# # Isolate a small df of all the vars with NA's 
+# colnames(varsNA)[1] <- "NAs"
+# varsNA <- varsNA %>% 
+#   filter(NAs != 0)
+# 
+# # Clean all the vars with NA's (the ones that we won't imputate)
+# timeone_clean <- timeone_clean %>% 
+#   mutate(`SOC Category` = replace_na(`SOC Category`, "Unknown"), 
+#          State = replace_na(State, "Unknown"),  
+#          State = recode(State, "USA" = "Unknown"), 
+#          State = recode(State, "NONE" = "Unknown"),
+#          State = recode(State, "US" = "Unknown"), 
+#          State = recode(State, "GE" = "GA"),
+#          State = recode(State, "NEW  YORK" = "NY"), 
+#          State = recode(State, "34" = "Unknown"),
+#          Isolation_number_of_days = replace_na(Isolation_number_of_days, 0),  
+#          Religion = replace_na(Religion, "Unknown")) 
+# 
+# colnames(timeone_clean)[3] <- "SOC_Category"
+# 
+# timeone_clean <- timeone_clean %>% 
+#   mutate(State_dummy =  recode(State, 
+#                            "AL" = 1,
+#                            "AK" = 2,
+#                            "AZ" = 3,
+#                            "AR" = 4,
+#                            "CA" = 5,
+#                            "CO" = 6,
+#                            "CT" = 7,
+#                            "DE" = 8,
+#                            "DC" = 9,
+#                            "FL" = 10,
+#                            "GA" = 11,
+#                            "HI" = 12,
+#                            "ID" = 13,
+#                            "IL" = 14,
+#                            "IN" = 15, 
+#                            "IA" = 16,
+#                            "KS" = 17,
+#                            "KY" = 18,
+#                            "LA" = 19, 
+#                            "ME" = 20,
+#                            "MD" = 21,
+#                            "MA" = 22,
+#                            "MI" = 23,
+#                            "MN" = 24,
+#                            "MS" = 25,
+#                            "MO" = 26,
+#                            "MT" = 27,
+#                            "NE" = 28,
+#                            "NV" = 29,
+#                            "NH" = 30,
+#                            "NJ" = 31,
+#                            "NM" = 32,
+#                            "NY" = 33,
+#                            "NC" = 34,
+#                            "ND" = 35,
+#                            "OH" = 36,
+#                            "OK" = 37,
+#                            "OR" = 38,
+#                            "PA" = 39,
+#                            "RI" = 40,
+#                            "SC" = 41,
+#                            "SD" = 42,
+#                            "TN" = 43,
+#                            "TX" = 44,
+#                            "UT" = 45,
+#                            "VT" = 46,
+#                            "VA" = 47,
+#                            "WA" = 48,
+#                            "WV" = 49,
+#                            "WI" = 50,
+#                            "WY" = 51,
+#                            "Unknown" = 0),
+#          Religion_dummy = recode(Religion, 
+#                            "Protestant" = 1, 
+#                            "Roman Catholic" = 2,  
+#                            "Hindu" = 3, 
+#                            "Buddhist" = 4, 
+#                            "Mormon" = 5,  
+#                            "Jewish" = 6, 
+#                            "Agnostic" = 7, 
+#                            "Atheist" = 8, 
+#                            "Nothing in Particular" = 9, 
+#                            "Something Else" = 10, 
+#                            "Unknown" = 0
+#                            ),
+#          SOC_Category_dummy = recode(SOC_Category, 
+#                               "Management Occupations" = 1, 
+#                               "Business and Financial Operations Occupations" = 2, 
+#                               "Computer and Mathematical Occupations" = 3, 
+#                               "Architecture and Engineering Occupations" = 4, 
+#                               "Life, Physical, and Social Science Occupations" = 5, 
+#                               "Community and Social Service Occupations" = 6, 
+#                               "Legal Occupations" = 7, 
+#                               "Educational Instruction and Library Occupations" = 8, 
+#                               "Arts, Design, Entertainment, Sports, and Media Occupations" = 9,
+#                               "Healthcare Practitioners and Technical Occupations" = 10, 
+#                               "Healthcare Support Occupations" = 11, 
+#                               "Protective Service Occupations" = 12, 
+#                               "Food Preparation and Serving Related Occupations" = 13,  
+#                               "Building and Grounds Cleaning and Maintenance Occupations" = 14, 
+#                               "Personal Care and Service Occupations" = 15, 
+#                               "Sales and Related Occupations" = 16, 
+#                               "Office and Administrative Support Occupations" = 17, 
+#                               "Farming, Fishing, and Forestry Occupations" = 18, 
+#                               "Construction and Extraction Occupations" = 19, 
+#                               "Installation, Maintenance, and Repair Occupations" = 20, 
+#                               "Production Occupations" = 21, 
+#                               "Transportation and Material Moving Occupations" = 22, 
+#                               "Military Specific Occupations" = 23,  
+#                               "Unknown" = 0)
+# ) %>% 
+#   dplyr::select(-SOC_Category, -State, -Religion)
+# 
 ```
-
 
 Before applying the model, I am assuming that we will need to do some sort of cross-validation, so I am going to split the dataset in half to make training and testing set for the algorithm:
 
@@ -228,10 +218,12 @@ set.seed(84735)
 
 samplesize <- 225
 
-train_ind <- sample(nrow(complete_timeone), size = samplesize, replace = F, prob = NULL)
+train_ind <- sample(nrow(timeone_clean), size = samplesize, replace = F, prob = NULL)
 
-train <- complete_timeone[train_ind, ]
-test <- complete_timeone[-train_ind, ]
+train <- timeone_clean[train_ind, ]
+test <- timeone_clean[-train_ind, ] 
+test <- test %>% 
+   dplyr::select(-`Preventive_Action_Taken_Scale_PPEuse_Total`)
 ```
 
 Time for Bayesian LASSO:
@@ -259,6 +251,11 @@ x_matrix_train <- train %>%
   dplyr::select(-`(Intercept)`) %>%
   as.matrix()
 
+x_matrix_test <- test %>%
+  model_matrix(model_formula, data = .) %>%
+  dplyr::select(-`(Intercept)`) %>%
+  as.matrix()
+
 # parameter setup
 burnin <- 5000
 iter <- 10000
@@ -274,7 +271,7 @@ suppressWarnings(lasso <- blasso(X = x_matrix_train, # covariate matrix
                 lambda2 = initial.lambda2,  
                 s2 = initial.variance))
 
-# collecting draws for some of the parameters for visualization
+# collecting draws for some of the parameters for quick check
 coef.lasso <- as.data.frame(cbind(iter = seq(iter), 
                               beta1 = lasso$beta[, "b.1"], 
                               beta2 = lasso$beta[, "b.2"], 
@@ -286,15 +283,15 @@ coef.lasso <- as.data.frame(cbind(iter = seq(iter),
 colMedians(coef.lasso[-seq(burnin), -1]) # new posterior median estimations
 ```
 
-Median $\lambda.square$ value is 0.4023588363 
+Median $\lambda.square$ value is 0.415044823 
 
 ### Diagnostics: 
 
 (The following results could be different if we specify our prior distributions instead of giving extreme values:) 
 
-Comparing vars dumped in regular LASSO
+Comparing vars dumped in regular LASSO:
+
 ```{r}
-# This needs some work here
 # Compare regular LASSO vs. BLASSO: number of coefficients shrunk to zero 
 
 # Regular LASSO
@@ -302,15 +299,15 @@ fit.glmnet <- glmnet(as.matrix(x_matrix_train), train$Preventive_Action_Taken_Sc
                         lambda = cv.glmnet(as.matrix(x_matrix_train), train$Preventive_Action_Taken_Scale_PPEuse_Total)$lambda.1se)
 coef.glmnet <- coef(fit.glmnet)
 sum(coef.glmnet == 0)
-# 33 vars dumped
+# 32 vars dumped
 
 # BLASSO
 sum(colMedians(lasso$beta[-seq(burnin), ]) == 0)
-# 30 vars dumped
+# 31 vars dumped
 ```
 
 ```{r}
-# made a results table based on nonzero slopes. even though there are technically 8, one of them 
+# made a results table based on nonzero slopes. 
 coefficients <- tribble( 
   ~"var name", ~"beta", ~"median coef", ~"median tau2i", 
    "Age", "beta1", -0.0008406, 0.3313,
@@ -336,16 +333,26 @@ summary(lasso, burnin = 5000)
 Cross Validation: 
 
 ```{r}
-cvlas <- cv.lars(x_matrix_train, train$Preventive_Action_Taken_Scale_PPEuse_Total, K = 10, type = "lasso")
-frac <- cvlas$index[which.min(cvlas$cv)]
-frac
+# cross-validation with lars package
+cvlas <- cv.lars(x_matrix_train, train$Preventive_Action_Taken_Scale_PPEuse_Total, plot.it = TRUE, K = 10, type = "lasso")
+```
+
+```{r}
+# overall plot of LASSO model
+lasso.model <- lars(x = as.matrix(train[, colnames(train) != "Preventive_Action_Taken_Scale_PPEuse_Total"]), y = train$Preventive_Action_Taken_Scale_PPEuse_Total, 
+    type = "lasso")
+
+plot(lasso.model)
+```
+
+Predict new values for test data
+```{r}
+# get predictions corresponding to model fit to training data using optimal lambda
+frac <- cvlas$fraction[which.min(cvlas$cv.error)]
+frac  # this is returning a null result for some reason
 las.coef <- predict.lars(lasso, type="coefficients", mode="fraction", s=frac)
 las.coef
 ```
-
-
-- do we use LASSO-based CV or Bayesian CV or a combo
-- how can we visualize this
 
 # References: 
 
