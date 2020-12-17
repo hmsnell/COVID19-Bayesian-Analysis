@@ -14,19 +14,22 @@ library(rstan)
 library(readr)
 library(rstanarm)
 library(bayesplot)
+library(glmnet)
+library(monomvn)
+library(miscTools)
+library(mice)
+library(rstan)
+library(modelr)
+library(lars)
+
+set.seed(84735)
+
+timeone_clean <- read_csv("timeone_clean.csv")
 ```
 
-# Title
+# Select Variables
 
-
-# Abstract 
-
-
-# Background and Significance
-
-### Literature Review
-
-### Select Variables
+Data cleaning and imputation was moved to `data_cleaning.Rmd` file. 
 
 ```{r}
 # covid <- read_csv("time1Time2Data.csv")
@@ -60,17 +63,9 @@ library(bayesplot)
 #   mutate(Isolation_yesorno = replace(Isolation_yesorno, Isolation_yesorno == 2, 1))
 ```
 
-
-control for demographics (age, sex, educational attainment)
-
-### hypothesis
-
 # Methods
 
-examine distribution to determine type of regression (poisson, gaussian, binom, etc)
-
-Create model
-## One for predicting quality of life
+## One for predicting quality of life (Association Model)
 
 ```{r}
 timeone_clean <- read_csv("timeone_clean.csv")
@@ -155,18 +150,143 @@ timeone_cor %>%
   GGally::ggpairs()
 ```
 
-## One for predicitng PPE use
+## One for predicitng PPE use (Predictive Model)
 
-Run diagnostics 
+### Using the LASSO Algorithm and Bayesian Regression to best predict PPE use! 
 
-Evaluate Accuracy 
+_Using the `monomvm` package for Bayesian Regression and LASSO:_ 
 
-Interpret model
+Before applying the model, I am assuming that we will need to do some sort of cross-validation, so I am going to split the dataset in half to make training and testing set for the algorithm:
 
-# Results
+```{r}
+set.seed(84735)
+
+samplesize <- 225
+
+train_ind <- sample(nrow(timeone_clean), size = samplesize, replace = F, prob = NULL)
+
+train <- timeone_clean[train_ind, ]
+test <- timeone_clean[-train_ind, ] 
+
+```
+
+Time for Bayesian LASSO:
+
+```{r}
+# This chunk takes a bit of time to run
+set.seed(84735)
+
+# convert categorical vars to factors before putting them in the model: 
+# train <- train %>% 
+#   mutate(SOC_Category = as.factor(SOC_Category), 
+#          State = as.factor(State), 
+#          Religion = as.factor(Religion),
+#          Preventive_Action_Taken_Scale_PPEuse_Total = as.factor(Preventive_Action_Taken_Scale_PPEuse_Total)) #%>% 
+ #dplyr::select(-SOC_Category, -State, -Religion) # <- removing categorical vars in case they are causing the issue
+
+# Define complicated model for model matrix: 
+model_formula <-
+  "Preventive_Action_Taken_Scale_PPEuse_Total ~ Age + Gender + SOC_Category_dummy + Religion_dummy + State_dummy + Employment_status_Befor_COVID + Employment_status_After_COVID + Marital_status + Education + Race + Annual_income + Illnesses + Meds + Accomodation + Isolation_yesorno + Isolation_number_of_days + Isolation_number_times_leave_per_day + Perceived_susceptibility_COVID + FFMQdescribetotal + FFMQnonreacttotal + FFMQnonjudgetotal + FFMQobservetotal + FFMQawaretotal + FFMQtotal + FFMQnonjudgemean + FFMQnonreactmean + FFMQobservemean + FFMQawaremean + FFMQdescribemean + Patient_Health_Questionnaire_Total + Quality_of_Life_Total + General_Health_Questionnaire_Negative_Total + Perceived_Vulnerability_to_Disease_Total + Intolerance_of_Uncertainty_Total + Preventive_Action_Taken_Scale_Avoid_Travel_People_Total + Impact_of_Events_Scale_Total + Number_of_children" %>%
+  as.formula()
+
+# Model matrix assembly for train data: 
+x_matrix_train <- train %>%
+  model_matrix(model_formula, data = .) %>%
+  dplyr::select(-`(Intercept)`) %>%
+  as.matrix()
+
+x_matrix_test <- test %>%
+  model_matrix(model_formula, data = .) %>%
+  dplyr::select(-`(Intercept)`) %>%
+  as.matrix()
+
+# parameter setup
+burnin <- 5000
+iter <- 10000
+initial.beta <- rep(-500, dim(x_matrix_train)[2]) # assigning an extreme initial value for all betas
+initial.lambda2 <- 10 # assigning an extreme initial value for lambda (penalty parameter)
+initial.variance <- 500 # assigning an extreme initial value for variance parameter
+
+# starting the Gibbs sampler here
+suppressWarnings(lasso <- blasso(X = x_matrix_train, # covariate matrix
+                y = train$Preventive_Action_Taken_Scale_PPEuse_Total,  # response vector
+                T = iter, # number of iterations
+                beta = initial.beta, 
+                lambda2 = initial.lambda2,  
+                s2 = initial.variance))
+
+# collecting draws for some of the parameters for quick check
+coef.lasso <- as.data.frame(cbind(iter = seq(iter), 
+                              beta1 = lasso$beta[, "b.1"], 
+                              beta2 = lasso$beta[, "b.2"], 
+                              variance = lasso$s2, 
+                              lambda.square = lasso$lambda2))
+```
+
+```{r}
+colMedians(coef.lasso[-seq(burnin), -1]) # new posterior median estimations
+```
+
+Median $\lambda.square$ value is 0.415044823 
+
+#### Diagnostics: 
+
+(The following results could be different if we specify our prior distributions instead of giving extreme values:) 
+
+Comparing vars dumped in regular LASSO:
+
+```{r}
+# Compare regular LASSO vs. BLASSO: number of coefficients shrunk to zero 
+
+# Regular LASSO
+fit.glmnet <- glmnet(as.matrix(x_matrix_train), train$Preventive_Action_Taken_Scale_PPEuse_Total, 
+                        lambda = cv.glmnet(as.matrix(x_matrix_train), train$Preventive_Action_Taken_Scale_PPEuse_Total)$lambda.1se)
+coef.glmnet <- coef(fit.glmnet)
+sum(coef.glmnet == 0)
+# 32 vars dumped
+
+# BLASSO
+sum(colMedians(lasso$beta[-seq(burnin), ]) == 0)
+# 31 vars dumped
+```
+
+```{r}
+# made a results table based on nonzero slopes. 
+coefficients <- tribble( 
+  ~"var name", ~"beta", ~"median coef", ~"median tau2i", 
+   "Age", "beta1", -0.0008406, 0.3313,
+   "Religion_dummy", "beta4", -0.168963, 0.137869,
+   "Employment_status_After_COVID", "beta7", -0.00788, 0.3448, 
+   "Education", "beta9", 0.17121, 0.2283,
+   "Annual_income", "beta11", 2.486e-06, 0.2679,
+   "Intolerance_of_Uncertainty_Total", "beta35", 0.12965, 0.15457,
+   "Preventive_Action_Taken_Scale_Avoid_Travel_People_Total", "beta36", 0.050522, 0.05764
+  )
+```
+
+If we get that all of our betas are shrunken to zero, try tuning hyperparameters (Park & Casella, 2008).
+
+More Diagnostics: 
+
+```{r}
+plot(lasso, burnin = 5000)
+
+summary(lasso, burnin = 5000)
+```
+
+Cross Validation: 
+
+```{r}
+# cross-validation with lars package
+cvlas <- cv.lars(x_matrix_train, train$Preventive_Action_Taken_Scale_PPEuse_Total, plot.it = TRUE, K = 10, type = "lasso")
+```
+
+```{r}
+# overall plot of LASSO model
+lasso.model <- lars(x = as.matrix(train[, colnames(train) != "Preventive_Action_Taken_Scale_PPEuse_Total"]), y = train$Preventive_Action_Taken_Scale_PPEuse_Total, 
+    type = "lasso")
+
+plot(lasso.model)
+```
 
 
-# Discussion/Conclusion
-
-
-# References 

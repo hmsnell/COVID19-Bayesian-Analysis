@@ -222,8 +222,7 @@ train_ind <- sample(nrow(timeone_clean), size = samplesize, replace = F, prob = 
 
 train <- timeone_clean[train_ind, ]
 test <- timeone_clean[-train_ind, ] 
-test <- test %>% 
-   dplyr::select(-`Preventive_Action_Taken_Scale_PPEuse_Total`)
+
 ```
 
 Time for Bayesian LASSO:
@@ -347,11 +346,29 @@ plot(lasso.model)
 
 Predict new values for test data
 ```{r}
-# get predictions corresponding to model fit to training data using optimal lambda
-frac <- cvlas$fraction[which.min(cvlas$cv.error)]
-frac  # this is returning a null result for some reason
-las.coef <- predict.lars(lasso, type="coefficients", mode="fraction", s=frac)
-las.coef
+# Predicting new y values - code issues? 
+beta <- colMedians(lasso$beta)
+     
+##n x nsims matrix of realizations from the posterior predictive:
+post_pred_y <- with(lasso, x_matrix_test %*% t(beta))
+ 
+ ## predictions:
+y_pred <- rowMeans(post_pred_y)
+head(y_pred)
+ 
+ ## sd of y:
+sd_y <- apply(post_pred_y, 1, sd)
+head(sd_y)
+ 
+ ## 90% credible intervals
+ci_y <- t(apply(post_pred_y, 1, quantile, probs=c(0.05, 0.95)))
+head(ci_y)
+ci_y[2, ]
+ci_y[5, ]
+ci_y[9, ]
+ci_y[10, ]
+ci_y[37, ]
+ci_y[38, ]
 ```
 
 # References: 
@@ -364,4 +381,4 @@ las.coef
 [counting NAs over all vars](https://sebastiansauer.github.io/sum-isna/)
 [replace_na function](https://tidyr.tidyverse.org/reference/replace_na.html)
 [blasso template code](https://stats.stackexchange.com/questions/268734/how-to-use-blasso-function-in-r-package-monomvn)
-
+[blasso plot](https://rstudio-pubs-static.s3.amazonaws.com/11164_275c8ac69f4b4486b4dd1b5f988b0f5f.html)
