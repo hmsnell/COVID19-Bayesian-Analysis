@@ -145,7 +145,7 @@ timeone_cor <- timeone_rename %>%
 apa.cor.table(timeone_cor, filename = "correlation.doc", table.number = 1,
               show.conf.interval = F, landscape = TRUE)
 
-#this plot is a bit ugly
+# this plot is a bit ugly
 timeone_cor %>%
   GGally::ggpairs()
 ```
@@ -172,7 +172,7 @@ test <- timeone_clean[-train_ind, ]
 
 Time for Bayesian LASSO:
 
-```{r}
+```{r, results = F}
 # This chunk takes a bit of time to run
 set.seed(84735)
 
@@ -256,9 +256,8 @@ coefficients <- tribble(
   ~"var name", ~"beta", ~"median coef", ~"median tau2i", 
    "Age", "beta1", -0.0008406, 0.3313,
    "Religion_dummy", "beta4", -0.168963, 0.137869,
-   "Employment_status_After_COVID", "beta7", -0.00788, 0.3448, 
+   "Marital_Status", "beta8", -0.00788, 0.3448, #fix these
    "Education", "beta9", 0.17121, 0.2283,
-   "Annual_income", "beta11", 2.486e-06, 0.2679,
    "Intolerance_of_Uncertainty_Total", "beta35", 0.12965, 0.15457,
    "Preventive_Action_Taken_Scale_Avoid_Travel_People_Total", "beta36", 0.050522, 0.05764
   )
